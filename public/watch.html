@@ -753,23 +753,41 @@ async function fetchDynamicVideoData() {
         return;
     }
     
-    showLoading("Securing Connection...", "Fetching stream metadata");
+    // Animated loading stages so user feels progress
+    const stages = [
+        ["Securing Connection...", "Establishing encrypted tunnel"],
+        ["Authenticating Stream...", "Verifying access credentials"],
+        ["Loading Player Data...", "Fetching video metadata"],
+        ["Preparing Stream...", "Initializing DRM decryption"],
+        ["Almost Ready...", "Redirecting to stream source"]
+    ];
+    let stageIdx = 0;
+    showLoading(stages[0][0], stages[0][1]);
+    const stageTimer = setInterval(function() {
+        stageIdx++;
+        if (stageIdx < stages.length) {
+            showLoading(stages[stageIdx][0], stages[stageIdx][1]);
+        }
+    }, 1000);
     
     let redirected = false;
-    // Fallback: If API call takes longer than 5 seconds, redirect directly to avoid getting stuck
-    const redirectTimeout = setTimeout(() => {
+    // Fallback: If API call takes longer than 5 seconds, redirect INSTANTLY via /api/go (no double-fetch)
+    const redirectTimeout = setTimeout(function() {
         if (redirected) return;
         redirected = true;
-        console.warn("API call timed out after 5s, redirecting to play fallback...");
-        window.location.href = `/api/play?token=${encodeURIComponent(token)}`;
+        clearInterval(stageTimer);
+        showLoading("Redirecting...", "Opening stream source directly");
+        // /api/go just decrypts and 302 redirects instantly, no external fetch
+        window.location.href = '/api/go?token=' + encodeURIComponent(token);
     }, 5000);
     
     try {
-        const response = await fetch(`/api/video-data?token=${encodeURIComponent(token)}`);
+        const response = await fetch('/api/video-data?token=' + encodeURIComponent(token));
         const resData = await response.json();
         
         if (redirected) return;
         clearTimeout(redirectTimeout);
+        clearInterval(stageTimer);
         redirected = true;
         
         if (resData.success && resData.videoData) {
@@ -781,7 +799,7 @@ async function fetchDynamicVideoData() {
             SLIDES = resData.slides || [];
             
             // Update document title and header title
-            document.title = TOPIC_NAME + " — RangeXCoder";
+            document.title = TOPIC_NAME + " \u2014 RangeXCoder";
             const titleEl = document.getElementById('player-title');
             if (titleEl) titleEl.textContent = TOPIC_NAME;
             
@@ -816,10 +834,11 @@ async function fetchDynamicVideoData() {
     } catch (err) {
         if (redirected) return;
         clearTimeout(redirectTimeout);
+        clearInterval(stageTimer);
         redirected = true;
-        console.error("API call failed, falling back to direct play redirect:", err);
-        // Fallback: Try redirecting directly via play endpoint which does a direct 302 redirect
-        window.location.href = `/api/play?token=${encodeURIComponent(token)}`;
+        console.error("API call failed, falling back to instant redirect:", err);
+        // /api/go just decrypts and 302 redirects instantly
+        window.location.href = '/api/go?token=' + encodeURIComponent(token);
     }
 }
 

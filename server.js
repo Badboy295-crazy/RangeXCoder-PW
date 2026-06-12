@@ -207,6 +207,20 @@ app.get('/api/decrypt-token', (req, res) => {
     res.json({ success: true, url: decryptedUrl });
 });
 
+// Instant redirect - decrypts and immediately 302 redirects, no external fetch
+app.get('/api/go', (req, res) => {
+    const { token } = req.query;
+    if (!token) {
+        return res.status(400).send("Access token is missing.");
+    }
+    const decryptedUrl = decrypt(token);
+    if (!decryptedUrl) {
+        return res.status(400).send("Invalid or expired access token.");
+    }
+    // Instant redirect, no server-side fetch or proxy attempt
+    res.redirect(decryptedUrl);
+});
+
 // Server-side fetching to proxy content and hide stream.testuk.org domain
 app.get('/api/play', async (req, res) => {
     const { token } = req.query;

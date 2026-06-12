@@ -744,6 +744,24 @@ window.addEventListener('beforeunload',()=>{if(shakaInst){try{shakaInst.destroy(
 showLoading('Initializing…','Starting player');
 showControls();scheduleHide();
 
+// Domain Spoof: Instead of redirecting to stream.testuk.org (losing our domain),
+// embed their player in a full-screen iframe so URL bar still shows OUR domain
+function loadFallbackIframe(url) {
+    // Hide the entire custom player UI
+    document.getElementById('shell').style.display = 'none';
+    document.getElementById('bottom-panel').style.display = 'none';
+    // Create full-screen iframe
+    var iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:99999;background:#000;';
+    iframe.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
+    iframe.allowFullscreen = true;
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-presentation');
+    document.body.appendChild(iframe);
+    // Update title
+    document.title = 'Stream Player — RangeXCoder';
+}
+
 async function fetchDynamicVideoData() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -759,7 +777,7 @@ async function fetchDynamicVideoData() {
         ["Authenticating Stream...", "Verifying access credentials"],
         ["Loading Player Data...", "Fetching video metadata"],
         ["Preparing Stream...", "Initializing DRM decryption"],
-        ["Almost Ready...", "Redirecting to stream source"]
+        ["Almost Ready...", "Loading stream player"]
     ];
     let stageIdx = 0;
     showLoading(stages[0][0], stages[0][1]);
@@ -771,14 +789,25 @@ async function fetchDynamicVideoData() {
     }, 1000);
     
     let redirected = false;
-    // Fallback: If API call takes longer than 5 seconds, redirect INSTANTLY via /api/go (no double-fetch)
+    // Fallback: If API call takes longer than 5 seconds, load iframe with original stream page
     const redirectTimeout = setTimeout(function() {
         if (redirected) return;
         redirected = true;
         clearInterval(stageTimer);
-        showLoading("Redirecting...", "Opening stream source directly");
-        // /api/go just decrypts and 302 redirects instantly, no external fetch
-        window.location.href = '/api/go?token=' + encodeURIComponent(token);
+        // Fetch the decrypted URL then load it in an iframe (keeps OUR domain in URL bar)
+        fetch('/api/decrypt-token?token=' + encodeURIComponent(token))
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success && d.url) {
+                    loadFallbackIframe(d.url);
+                } else {
+                    // Last resort: redirect via /api/go
+                    window.location.href = '/api/go?token=' + encodeURIComponent(token);
+                }
+            })
+            .catch(function() {
+                window.location.href = '/api/go?token=' + encodeURIComponent(token);
+            });
     }, 5000);
     
     try {
@@ -816,17 +845,17 @@ async function fetchDynamicVideoData() {
                     document.getElementById('panelInnerMob').innerHTML = pHTML;
                 }
             } catch (err) {
-                console.error("Failed to initialize player, redirecting to fallback:", err);
+                console.error("Failed to initialize player, loading iframe fallback:", err);
                 if (resData.fallbackUrl) {
-                    window.location.href = resData.fallbackUrl;
+                    loadFallbackIframe(resData.fallbackUrl);
                 } else {
                     showError(err.message || 'Failed to initialize player.');
                 }
             }
         } else {
-            console.warn("Proxy extraction failed, trying fallback redirect...");
+            console.warn("Proxy extraction failed, loading iframe fallback...");
             if (resData.fallbackUrl) {
-                window.location.href = resData.fallbackUrl;
+                loadFallbackIframe(resData.fallbackUrl);
             } else {
                 showError(resData.message || "Failed to load secure stream player.");
             }
@@ -836,9 +865,20 @@ async function fetchDynamicVideoData() {
         clearTimeout(redirectTimeout);
         clearInterval(stageTimer);
         redirected = true;
-        console.error("API call failed, falling back to instant redirect:", err);
-        // /api/go just decrypts and 302 redirects instantly
-        window.location.href = '/api/go?token=' + encodeURIComponent(token);
+        console.error("API call failed, loading iframe fallback:", err);
+        // Fetch decrypted URL and load iframe (keeps our domain)
+        fetch('/api/decrypt-token?token=' + encodeURIComponent(token))
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success && d.url) {
+                    loadFallbackIframe(d.url);
+                } else {
+                    window.location.href = '/api/go?token=' + encodeURIComponent(token);
+                }
+            })
+            .catch(function() {
+                window.location.href = '/api/go?token=' + encodeURIComponent(token);
+            });
     }
 }
 

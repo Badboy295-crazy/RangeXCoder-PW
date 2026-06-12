@@ -266,6 +266,7 @@ app.get('/api/video-data', async (req, res) => {
         const notesMatch = html.match(/(?:const|let|var)\s+NOTES\s*=\s*([\s\S]*?);/);
         const dppNotesMatch = html.match(/(?:const|let|var)\s+DPP_NOTES\s*=\s*([\s\S]*?);/);
         const topicNameMatch = html.match(/(?:const|let|var)\s+TOPIC_NAME\s*=\s*([\s\S]*?);/);
+        const slidesMatch = html.match(/(?:const|let|var)\s+SLIDES\s*=\s*([\s\S]*?);/);
 
         if (!videoDataMatch) {
             throw new Error("VIDEO_DATA not found in stream player page.");
@@ -276,6 +277,7 @@ app.get('/api/video-data', async (req, res) => {
         let notes = [];
         let dppNotes = [];
         let topicName = "Video Stream Player";
+        let slides = [];
 
         const parseJsObject = (matchStr) => {
             try {
@@ -310,6 +312,10 @@ app.get('/api/video-data', async (req, res) => {
             topicName = topicNameMatch[1].trim().replace(/^['"`]|['"`]$/g, '');
         }
 
+        if (slidesMatch) {
+            slides = parseJsObject(slidesMatch[1]) || [];
+        }
+
         if (!videoData || !videoData.url) {
             throw new Error("Could not parse video url from VIDEO_DATA.");
         }
@@ -320,7 +326,8 @@ app.get('/api/video-data', async (req, res) => {
             pwHeaders: pwHeaders || {},
             notes: notes,
             dppNotes: dppNotes,
-            topicName: topicName
+            topicName: topicName,
+            slides: slides
         });
 
     } catch (error) {

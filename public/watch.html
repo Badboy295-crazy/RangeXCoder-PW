@@ -303,6 +303,7 @@ let NOTES = [];
 let DPP_NOTES = [];
 let TOPIC_NAME = "Video Stream Player";
 let PW_HEADERS = {};
+let SLIDES = [];
 
 async function fetchDynamicVideoData() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -325,6 +326,7 @@ async function fetchDynamicVideoData() {
             DPP_NOTES = resData.dppNotes || [];
             TOPIC_NAME = resData.topicName || "Video Player";
             PW_HEADERS = resData.pwHeaders || {};
+            SLIDES = resData.slides || [];
             
             // Update document title and header title
             document.title = TOPIC_NAME + " — RangeXCoder";
@@ -342,13 +344,14 @@ async function fetchDynamicVideoData() {
                     const pHTML = buildPanelHTML();
                     document.getElementById('panelInner').innerHTML = pHTML;
                     document.getElementById('panelInnerMob').innerHTML = pHTML;
-                    
-                    // Re-bind listeners for attachments tabs/preview if needed
-                    // In the original script, listeners might be bound during setup.
-                    // Let's check how tabs and listeners are set up.
                 }
             } catch (err) {
-                showError(err.message || 'Failed to initialize player.');
+                console.error("Failed to initialize player, redirecting to fallback:", err);
+                if (resData.fallbackUrl) {
+                    window.location.href = resData.fallbackUrl;
+                } else {
+                    showError(err.message || 'Failed to initialize player.');
+                }
             }
         } else {
             console.warn("Proxy extraction failed, trying fallback redirect...");

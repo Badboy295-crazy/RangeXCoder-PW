@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         (function() {
-            const theme = localStorage.getItem('rangexcoder_theme') || 'day';
+            const theme = localStorage.getItem('rangexcoder_theme') || 'night';
             document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
@@ -26,6 +26,7 @@
             --border-color: #e2e8f0;
             --action-blue: #0084ff;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --text-on-accent: #ffffff;
         }
 
         [data-theme="night"] {
@@ -38,6 +39,7 @@
             --border-color: #1e234a;
             --action-blue: #0084ff;
             --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            --text-on-accent: #ffffff;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
@@ -83,9 +85,30 @@
         .empty-heading { font-size: 20px; font-weight: 800; }
         .empty-subtext { font-size: 14px; color: var(--text-muted); }
         .status-msg { text-align: center; padding: 40px; color: var(--text-muted); }
+
+        .page-loader-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg-main);transition:opacity .4s,visibility .4s}
+        .page-loader-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+        .loader-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:32px 28px;width:min(340px,88%);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        .loader-spinner{width:40px;height:40px;border:3px solid var(--border-color);border-top-color:var(--accent-purple);border-radius:50%;animation:lspin .8s cubic-bezier(.5,.1,.4,.9) infinite}
+        @keyframes lspin{to{transform:rotate(360deg)}}
+        .loader-title{font-size:15px;font-weight:700;color:var(--text-white);letter-spacing:.3px}
+        .loader-msg{font-size:12px;color:var(--text-muted);font-weight:500}
+        .loader-bar{width:100%;height:5px;background:var(--border-color);border-radius:3px;overflow:hidden;margin-top:4px}
+        .loader-fill{height:100%;background:var(--accent-purple);width:0%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+        .loader-pct{font-size:12px;font-weight:700;color:var(--accent-purple)}
     </style>
 </head>
 <body>
+
+    <div class="page-loader-overlay" id="pageLoader">
+        <div class="loader-card">
+            <div class="loader-spinner"></div>
+            <div class="loader-title">RangeXCoder</div>
+            <div class="loader-msg" id="loaderMsg">Connecting to server...</div>
+            <div class="loader-bar"><div class="loader-fill" id="loaderFill" style="width:10%"></div></div>
+            <div class="loader-pct" id="loaderPct">10%</div>
+        </div>
+    </div>
 
     <div class="header-backbar" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -93,8 +116,8 @@
             <div class="chapter-headline-title" id="chapterNavbarTitle">Loading Chapter...</div>
         </div>
         <button id="themeToggleBtn" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-white); padding: 8px 14px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; box-shadow: var(--shadow); outline: none;">
-            <i class="fas fa-sun" id="themeIcon"></i>
-            <span id="themeText">Day</span>
+            <i class="fas fa-moon" id="themeIcon"></i>
+            <span id="themeText">Night</span>
         </button>
     </div>
 
@@ -111,6 +134,11 @@
     </div>
 
     <script>
+        let _lPct=10,_lTgt=30;const _lTmr=setInterval(()=>{if(_lPct<_lTgt){_lPct+=Math.max(.3,(_lTgt-_lPct)*.05);const f=document.getElementById('loaderFill'),p=document.getElementById('loaderPct');if(f)f.style.width=Math.round(_lPct)+'%';if(p)p.textContent=Math.round(_lPct)+'%';}},80);
+        function updLoader(m,t){const e=document.getElementById('loaderMsg');if(e)e.textContent=m;_lTgt=t;}
+        function hideLoader(){_lTgt=100;_lPct=100;const f=document.getElementById('loaderFill'),p=document.getElementById('loaderPct');if(f)f.style.width='100%';if(p)p.textContent='100%';clearInterval(_lTmr);setTimeout(()=>{const l=document.getElementById('pageLoader');if(l)l.classList.add('hidden');},400);}
+        let _firstStreamLoad = true;
+
         const urlParams = new URLSearchParams(window.location.search);
         const BATCH_ID = urlParams.get('batchId');
         const SUBJECT_ID = urlParams.get('subjectId');
@@ -145,6 +173,7 @@
         async function loadActiveSectionStream() {
             const container = document.getElementById('streamContentDeck');
             container.innerHTML = `<div class="status-msg">Loading section index array...</div>`;
+            if (_firstStreamLoad) updLoader('Loading content...', 70);
 
             try {
                 if (activeSection === 'dpp') {
@@ -166,6 +195,8 @@
                 }
             } catch (error) {
                 renderEmptyRocketState();
+            } finally {
+                if (_firstStreamLoad) { _firstStreamLoad = false; hideLoader(); }
             }
         }
 
@@ -305,6 +336,23 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => { initTabsHighlight(); loadActiveSectionStream(); });
+
+        // Theme toggle
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        function updateThemeUI(theme) {
+            if (theme === 'night') { themeIcon.className = 'fas fa-moon'; themeText.textContent = 'Night'; }
+            else { themeIcon.className = 'fas fa-sun'; themeText.textContent = 'Day'; }
+        }
+        themeToggleBtn.addEventListener('click', () => {
+            const cur = localStorage.getItem('rangexcoder_theme') || 'night';
+            const nxt = cur === 'day' ? 'night' : 'day';
+            localStorage.setItem('rangexcoder_theme', nxt);
+            document.documentElement.setAttribute('data-theme', nxt);
+            updateThemeUI(nxt);
+        });
+        updateThemeUI(localStorage.getItem('rangexcoder_theme') || 'night');
     </script>
 </body>
 </html>

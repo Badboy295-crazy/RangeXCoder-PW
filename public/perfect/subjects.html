@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace — RangeXCoder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #0b0c16;
+            --bg-card: #151833;
+            --bg-dark-tabs: #0e1022;
+            --accent-purple: #5c5be5;
+            --text-white: #ffffff;
+            --text-muted: #8e92b2;
+            --badge-blue: #0084ff;
+            --border-color: #1e234a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-white); min-height: 100vh; }
+        
+        .header-backbar { background-color: var(--bg-main); padding: 18px 24px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+        .back-btn { color: var(--text-white); font-size: 20px; text-decoration: none; cursor: pointer; }
+        .batch-headline-title { font-size: 20px; font-weight: 800; }
+
+        .workspace-wrapper { max-width: 1240px; margin: 25px auto; padding: 0 20px; }
+        
+        /* Today's Class Carousel Section Layout */
+        .todays-class-section { background-color: rgba(21, 24, 51, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 30px; }
+        .section-header-title { font-size: 18px; font-weight: 800; margin-bottom: 15px; }
+        .horizontal-cards-row { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 10px; }
+        
+        .lecture-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; min-width: 280px; max-width: 280px; overflow: hidden; display: flex; flex-direction: column; }
+        .lecture-thumbnail-area { width: 100%; height: 150px; background: radial-gradient(circle, #252a54 0%, #11132c 100%); position: relative; display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
+        .teacher-avatar-img { height: 135px; object-fit: contain; z-index: 2; }
+        .teacher-name-tag { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.75); color: var(--text-white); text-align: center; font-size: 12px; font-weight: 700; padding: 6px 0; z-index: 3; }
+
+        .lecture-meta-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        .badge-flex-row { display: flex; justify-content: space-between; align-items: center; }
+        .status-badge { background-color: var(--badge-blue); color: var(--text-white); font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; }
+        .time-counter-row { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; }
+        
+        .lecture-main-topic-text { font-size: 14px; font-weight: 700; line-height: 1.4; color: var(--text-white); display: -webkit-box; --webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .lecture-sub-desc-text { font-size: 12px; color: var(--text-muted); line-height: 1.4; display: -webkit-box; --webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: auto; }
+
+        .workspace-navigation-tabs { display: flex; background-color: var(--bg-dark-tabs); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 25px; overflow: hidden; }
+        .nav-tab-node { flex: 1; text-align: center; padding: 16px; font-weight: 700; font-size: 15px; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; }
+        .nav-tab-node.active-node { color: var(--text-white); border-bottom: 3px solid var(--accent-purple); background-color: rgba(92, 91, 229, 0.05); }
+
+        /* Subjects Section List */
+        .subjects-stack-list { display: flex; flex-direction: column; gap: 14px; }
+        .subject-row-item-div { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+        .subject-row-item-div:hover { transform: translateY(-2px); border-color: var(--accent-purple); }
+        
+        .subject-left-composite { display: flex; align-items: center; gap: 18px; }
+        
+        /* Fixed Subject Image Frame Box */
+        .subject-vector-avatar-frame { width: 52px; height: 52px; border-radius: 10px; background-color: rgba(92, 91, 229, 0.1); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(92, 91, 229, 0.2); overflow: hidden; }
+        .subject-api-icon-img { width: 100%; height: 100%; object-fit: cover; }
+        .subject-fallback-icon { font-size: 20px; color: #7978e9; }
+
+        .subject-text-details { display: flex; flex-direction: column; gap: 4px; }
+        .subject-title-h3 { font-size: 16px; font-weight: 700; color: var(--text-white); }
+        .subject-chapters-metadata-span { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        .subject-right-chevron-arrow i { color: var(--text-muted); font-size: 18px; }
+        .status-msg { text-align: center; padding: 30px; color: var(--text-muted); font-size: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-backbar">
+        <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+        <div class="batch-headline-title" id="batchNavbarTitle">Loading Workspace Node...</div>
+    </div>
+
+    <div class="workspace-wrapper">
+        
+        <div class="todays-class-section" id="todaysClassSection" style="display: none;">
+            <div class="section-header-title">Today's Class</div>
+            <div class="horizontal-cards-row" id="lecturesContainer"></div>
+        </div>
+
+        <div class="workspace-navigation-tabs">
+            <div class="nav-tab-node active-node">All Classes</div>
+            <div class="nav-tab-node">Khazana</div>
+            <div class="nav-tab-node">Tests</div>
+            <div class="nav-tab-node">Announcements</div>
+        </div>
+
+        <div class="subjects-stack-list" id="subjectsContainer">
+            <div class="status-msg">Fetching metadata engine structure...</div>
+        </div>
+
+    </div>
+
+    <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const BATCH_ID = urlParams.get('batchId') || "698ad3519549b300a5e1cc6a";
+    const BATCH_NAME = urlParams.get('batchName') || "Workspace Dashboard";
+
+    document.getElementById('batchNavbarTitle').innerText = BATCH_NAME;
+
+    async function initBatchWorkspace() {
+        await Promise.all([ loadSubjectsData(), loadTodaysSchedule() ]);
+    }
+
+    async function loadSubjectsData() {
+        const container = document.getElementById('subjectsContainer');
+        try {
+            const response = await fetch(`/api/batch-details?batchId=${BATCH_ID}`);
+            const resData = await response.json();
+
+            if (!resData.success || !resData.data || !Array.isArray(resData.data.subjects)) {
+                container.innerHTML = `<div class="status-msg">No active subjects tracked inside this node view.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            resData.data.subjects.forEach(sub => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'subject-row-item-div';
+                
+                // FIXED ROUTING LOCATION PATH LAYER MATCHING SCREENSHOT EXACT SPEC CONTEXT
+                rowDiv.onclick = () => {
+                    window.location.href = `/content.html?batchId=${BATCH_ID}&subjectId=${sub._id}&subjectName=${encodeURIComponent(sub.subject)}&batchName=${encodeURIComponent(BATCH_NAME)}`;
+                };
+
+                let imageHTML = '';
+                if (sub.imageId && sub.imageId.baseUrl && sub.imageId.key) {
+                    const fullImgUrl = `${sub.imageId.baseUrl}${sub.imageId.key}`;
+                    imageHTML = `<img src="${fullImgUrl}" class="subject-api-icon-img" onerror="useFallbackIcon(this, '${sub.subject}');">`;
+                } else {
+                    imageHTML = `<i class="${getFallbackIconClass(sub.subject)} subject-fallback-icon"></i>`;
+                }
+
+                rowDiv.innerHTML = `
+                    <div class="subject-left-composite">
+                        <div class="subject-vector-avatar-frame">${imageHTML}</div>
+                        <div class="subject-text-details">
+                            <div class="subject-title-h3">${sub.subject}</div>
+                            <div class="subject-chapters-metadata-span">${sub.tagCount || 0} Chapters</div>
+                        </div>
+                    </div>
+                    <div class="subject-right-chevron-arrow"><i class="fas fa-chevron-right"></i></div>
+                `;
+                container.appendChild(rowDiv);
+            });
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<div class="status-msg">Failed to connect to backend parsing route configuration.</div>`;
+        }
+    }
+
+    function getFallbackIconClass(subjectName) {
+        const name = subjectName.toLowerCase();
+        if (name.includes('physics')) return 'fas fa-atom';
+        if (name.includes('chemistry') || name.includes('chem')) return 'fas fa-flask';
+        if (name.includes('math')) return 'fas fa-calculator';
+        if (name.includes('notice')) return 'fas fa-bell';
+        return 'fas fa-book';
+    }
+
+    function useFallbackIcon(imgNode, subjectName) {
+        const frame = imgNode.parentElement;
+        if(frame) { frame.innerHTML = `<i class="${getFallbackIconClass(subjectName)} subject-fallback-icon"></i>`; }
+    }
+
+    async function loadTodaysSchedule() {
+        const section = document.getElementById('todaysClassSection');
+        const rowContainer = document.getElementById('lecturesContainer');
+        try {
+            const response = await fetch(`/api/todays-schedule?batchId=${BATCH_ID}`);
+            const resData = await response.json();
+
+            if (!resData.success || !Array.isArray(resData.data) || resData.data.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            rowContainer.innerHTML = '';
+
+            resData.data.forEach(sched => {
+                const teacher = (sched.teacherProfiles && sched.teacherProfiles[0]) ? sched.teacherProfiles[0] : { name: "Batch Faculty", imageId: null };
+                let avatarUrl = "https://static.pw.live/5eb393ee95fab7468a79d189/ADMIN/a8a8837e-fa4d-4355-bbd5-214512154c23.png"; 
+                if (teacher.imageId && teacher.imageId.baseUrl && teacher.imageId.key) {
+                    avatarUrl = `${teacher.imageId.baseUrl}${teacher.imageId.key}`;
+                }
+
+                let timeDisplay = "04:00 PM";
+                if (sched.startTime) {
+                    try { timeDisplay = new Date(sched.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); } catch(e){}
+                }
+
+                const topicText = sched.topic || 'Live Session';
+                const splitPos = topicText.indexOf(' : ');
+                const titleHeading = splitPos !== -1 ? topicText.substring(0, splitPos) : topicText;
+                const titleSubtext = splitPos !== -1 ? topicText.substring(splitPos + 3) : 'Syllabus progression details update.';
+
+                const card = document.createElement('div');
+                card.className = 'lecture-card';
+                card.innerHTML = `
+                    <div class="lecture-thumbnail-area">
+                        <img src="${avatarUrl}" alt="${teacher.name}" class="teacher-avatar-img" onerror="this.src='https://via.placeholder.com/150/151833/ffffff?text=Faculty';">
+                        <div class="teacher-name-tag">${teacher.name}</div>
+                    </div>
+                    <div class="lecture-meta-body">
+                        <div class="badge-flex-row">
+                            <div class="status-badge" style="background-color: ${sched.tag === 'Upcoming' ? '#0084ff' : '#ff3366'}">${sched.tag || 'Upcoming'}</div>
+                            <div class="time-counter-row"><i class="far fa-clock"></i> <span>${timeDisplay}</span></div>
+                        </div>
+                        <div class="lecture-main-topic-text" title="${titleHeading}">${titleHeading}</div>
+                        <div class="lecture-sub-desc-text" title="${titleSubtext}">${titleSubtext}</div>
+                    </div>
+                `;
+                rowContainer.appendChild(card);
+            });
+        } catch (err) {
+            console.error(err);
+            section.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', initBatchWorkspace);
+</script>
+</body>
+</html>

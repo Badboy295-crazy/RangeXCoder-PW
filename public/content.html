@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subject Topics Explorer — RangeXCoder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #0b0c16;
+            --bg-card: #151833;
+            --accent-purple: #5c5be5;
+            --accent-hover: #4a49c6;
+            --text-white: #ffffff;
+            --text-muted: #8e92b2;
+            --border-color: #1e234a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-white); min-height: 100vh; }
+        
+        .header-backbar { background-color: var(--bg-main); padding: 18px 24px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+        .back-btn { color: var(--text-white); font-size: 20px; text-decoration: none; cursor: pointer; }
+        .subject-headline-title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+
+        .topics-wrapper-deck { max-width: 960px; margin: 30px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 16px; }
+
+        .topic-row-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 22px 26px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+        .topic-row-card:hover { transform: translateY(-2px); border-color: var(--accent-purple); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+
+        .topic-left-layout-node { display: flex; flex-direction: column; gap: 6px; max-width: 85%; }
+        .topic-primary-title-h2 { font-size: 16px; font-weight: 700; color: var(--text-white); line-height: 1.4; }
+        .topic-metadata-sub-text { font-size: 13px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.2px; }
+        .topic-right-action-node i { color: #4b528c; font-size: 18px; }
+        .topic-row-card:hover .topic-right-action-node i { color: var(--accent-purple); }
+        .status-msg { text-align: center; padding: 40px; color: var(--text-muted); font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-backbar">
+        <div class="back-btn" id="customBackLinkBtn"><i class="fas fa-chevron-left"></i></div>
+        <div class="subject-headline-title" id="subjectHeaderTitle">Loading Subject Engine...</div>
+    </div>
+
+    <div class="topics-wrapper-deck" id="topicsContainerDeck">
+        <div class="status-msg">Streaming content partition indices sequentially...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const BATCH_ID = urlParams.get('batchId');
+        const SUBJECT_ID = urlParams.get('subjectId');
+        const SUBJECT_SLUG = urlParams.get('subjectSlug') || "";
+        const SUBJECT_NAME = urlParams.get('subjectName') || "Subject Content";
+        const BATCH_NAME = urlParams.get('batchName') || "";
+
+        document.getElementById('subjectHeaderTitle').innerText = SUBJECT_NAME;
+        
+        document.getElementById('customBackLinkBtn').onclick = () => {
+            window.location.href = `/subjects?batchId=${BATCH_ID}&batchName=${encodeURIComponent(BATCH_NAME)}`;
+        };
+
+        let currentPage = 1;
+        let hasMorePagesData = true;
+        let isFetchingPageLock = false;
+
+        async function fetchNextTopicsChunk() {
+            if (isFetchingPageLock || !hasMorePagesData) return;
+            isFetchingPageLock = true;
+
+            const container = document.getElementById('topicsContainerDeck');
+            try {
+                const response = await fetch(`/api/topics?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&page=${currentPage}`);
+                const resData = await response.json();
+
+                if (currentPage === 1) { container.innerHTML = ''; }
+
+                if (!resData.success || !Array.isArray(resData.data) || resData.data.length === 0) {
+                    hasMorePagesData = false;
+                    if (currentPage === 1) {
+                        container.innerHTML = `<div class="status-msg">No active topics found listed inside this subject structure.</div>`;
+                    }
+                    isFetchingPageLock = false;
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                resData.data.forEach(topic => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'topic-row-card';
+                    
+                    // FIXED STRICT ROUTING POINT DIRECTLY MATCHING STREAM LAYOUT FORMAT CONTEXT
+                    rowDiv.onclick = () => {
+                        window.location.href = `/stream.html?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterId=${topic._id}&batchName=${encodeURIComponent(BATCH_NAME)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&chapterName=${encodeURIComponent(topic.name)}&section=videos`;
+                    };
+
+                    const videosCount = topic.videos !== undefined ? topic.videos : (topic.lectureVideos || 0);
+                    rowDiv.innerHTML = `
+                        <div class="topic-left-layout-node">
+                            <div class="topic-primary-title-h2">${topic.name}</div>
+                            <div class="topic-metadata-sub-text">
+                                ${videosCount} Videos | ${topic.exercises || 0} Exercises | ${topic.notes || 0} Notes
+                            </div>
+                        </div>
+                        <div class="topic-right-action-node"><i class="fas fa-chevron-right"></i></div>
+                    `;
+                    fragment.appendChild(rowDiv);
+                });
+
+                container.appendChild(fragment);
+                currentPage++;
+            } catch (error) {
+                console.error(error);
+            } finally {
+                isFetchingPageLock = false;
+            }
+        }
+
+        window.addEventListener('scroll', () => {
+            if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 300) {
+                fetchNextTopicsChunk();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', fetchNextTopicsChunk);
+    </script>
+</body>
+</html>

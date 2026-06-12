@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture Workspace — RangeXCoder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #060713;
+            --bg-card: #0f1126;
+            --accent-purple: #5c5be5;
+            --text-white: #ffffff;
+            --text-muted: #7d82a6;
+            --border-color: #171b3d;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-white); min-height: 100vh; overflow-x: hidden; }
+
+        .header-backbar { background-color: #0b0c16; padding: 16px 24px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); }
+        .back-btn { color: var(--text-white); font-size: 18px; text-decoration: none; cursor: pointer; }
+        .lecture-headline-title { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; }
+
+        .theater-layout-grid { display: grid; grid-template-columns: 1fr 380px; min-height: calc(100vh - 54px); }
+        .video-broadcasting-column { padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        
+        .video-frame-container { width: 100%; aspect-ratio: 16/9; background-color: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); position: relative; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        .slide-deck-tabs-area { background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); padding: 16px; }
+        .tabs-header-row { display: flex; gap: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
+        .sub-tab-item { font-size: 14px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+        .sub-tab-item.active-sub-tab { color: var(--text-white); border-bottom: 2px solid var(--accent-purple); padding-bottom: 8px; }
+
+        .timeline-carousel-slider { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 10px; min-height: 110px; }
+        .timeline-carousel-slider::-webkit-scrollbar { height: 4px; }
+        .timeline-carousel-slider::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; }
+        
+        .slide-thumbnail-node { background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; min-width: 140px; max-width: 140px; cursor: pointer; flex-shrink: 0; }
+        .slide-img-wrapper { width: 100%; height: 80px; background-color: #000; }
+        .slide-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .slide-meta-label { padding: 6px; text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); background-color: rgba(0,0,0,0.3); }
+
+        .comments-broadcasting-column { background-color: #0a0b18; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; height: calc(100vh - 54px); }
+        .comments-header-panel { padding: 16px 20px; font-size: 15px; font-weight: 800; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
+        .comments-header-panel i { color: var(--accent-purple); }
+        
+        .live-comments-scroller-box { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+        .comment-node-message { display: flex; gap: 12px; align-items: flex-start; }
+        .comment-avatar-circle { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #3b3e66 0%, #1e203b 100%); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #a5a9cc; border: 1px solid var(--border-color); flex-shrink: 0; }
+        .comment-text-bubble-area { display: flex; flex-direction: column; gap: 4px; }
+        .commentator-user-name { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+        .commentator-body-payload { font-size: 13px; color: var(--text-white); line-height: 1.4; font-weight: 500; }
+
+        @media(max-width: 992px) {
+            .theater-layout-grid { grid-template-columns: 1fr; }
+            .comments-broadcasting-column { height: 450px; border-left: none; border-top: 1px solid var(--border-color); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-backbar">
+        <div class="back-btn" id="watchPageBackBtn"><i class="fas fa-arrow-left"></i></div>
+        <div class="lecture-headline-title" id="watchNavbarLectureTitle">Loading Stream Workspace...</div>
+    </div>
+
+    <div class="theater-layout-grid">
+        
+        <div class="video-broadcasting-column">
+            <div class="video-frame-container">
+                <video id="videoPlayerNode" controls autoplay crossorigin="anonymous"></video>
+            </div>
+
+            <div class="slide-deck-tabs-area">
+                <div class="tabs-header-row">
+                    <div class="sub-tab-item active-sub-tab">Timeline Slides</div>
+                    <div class="sub-tab-item">Lecture Index</div>
+                </div>
+                <div class="timeline-carousel-slider" id="slidesCarouselContainer">
+                    </div>
+            </div>
+        </div>
+
+        <div class="comments-broadcasting-column">
+            <div class="comments-header-panel">
+                <i class="far fa-comments"></i>
+                <span>Live Lecture Comments</span>
+            </div>
+            <div class="live-comments-scroller-box" id="commentsBoxScroller">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const BATCH_ID = urlParams.get('batchId');
+        const SUBJECT_ID = urlParams.get('subjectId');
+        const VIDEO_ID = urlParams.get('videoId') || "69ff18a7ef0d5bb3113d55b1";
+        const BATCH_NAME = urlParams.get('batchName') || "";
+        const SUBJECT_NAME = urlParams.get('subjectName') || "";
+        const CHAPTER_NAME = urlParams.get('chapterName') || "";
+        const LECTURE_NAME = urlParams.get('lectureName') || "Video Broadcast Workspace";
+
+        document.getElementById('watchNavbarLectureTitle').innerText = LECTURE_NAME;
+
+        document.getElementById('watchPageBackBtn').onclick = () => {
+            window.location.href = `/stream?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&chapterId=69dc843271d06abbf3869763&batchName=${encodeURIComponent(BATCH_NAME)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&chapterName=${encodeURIComponent(CHAPTER_NAME)}&section=videos`;
+        };
+
+        async function bootShakaPlayer() {
+            shaka.polyfill.installAll();
+            
+            if (!shaka.Player.isBrowserSupported()) {
+                console.error('EME Secure decryptions dropped context.');
+                return;
+            }
+
+            const video = document.getElementById('videoPlayerNode');
+            const player = new shaka.Player(video);
+
+            player.configure({
+                drm: {
+                    clearKeys: {
+                        'fb132a1db65b513f669ad64d9f9e43b2': '8925cec5fe680041688fa26cc4aa1729'
+                    }
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/get-video-url?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&childId=${VIDEO_ID}`);
+                const resData = await response.json();
+                
+                const signedParams = resData.data.signedUrl || ""; 
+                const manifestUrl = resData.data.url + signedParams;
+
+                // ================== HIGH PERFORMANCE REQUEST FILTER ENGINE ==================
+                // Yeh section har ek audio/video chunk (`init.mp4`, `1.mp4`) ke peeche signature token force-attach karega
+                player.getNetworkingEngine().registerRequestFilter((type, request) => {
+                    if (type === shaka.net.NetworkingEngine.RequestType.SEGMENT) {
+                        const targetUri = request.uris[0];
+                        if (signedParams && !targetUri.includes('URLPrefix=')) {
+                            const cleanParams = signedParams.startsWith('?') ? signedParams.substring(1) : signedParams;
+                            const separator = targetUri.includes('?') ? '&' : '?';
+                            request.uris[0] = targetUri + separator + cleanParams;
+                        }
+                    }
+                });
+                // ==============================================================================
+
+                // Fail-Safe Exception Interceptor
+                player.addEventListener('error', async (event) => {
+                    console.log('Stream intercept error, destroying shaka thread to trigger direct fallback loop.');
+                    await player.destroy();
+                    video.src = "https://html5demos.com/assets/dizzy.mp4"; // Clean CORS bypass test link
+                });
+
+                await player.load(manifestUrl);
+                console.log('MPEG-DASH stream segments mapped flawlessly.');
+
+            } catch (error) {
+                console.log('Catch block activated, rolling back to raw video element source.');
+                await player.destroy();
+                video.src = "https://html5demos.com/assets/dizzy.mp4";
+            }
+        }
+
+        async function loadSlidesTimeline() {
+            const carousel = document.getElementById('slidesCarouselContainer');
+            try {
+                const response = await fetch(`/api/video-timeline?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&videoId=${VIDEO_ID}`);
+                const resData = await response.json();
+
+                if(!resData.data || resData.data.length === 0) {
+                    carousel.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:10px;">No slides found.</div>`;
+                    return;
+                }
+
+                carousel.innerHTML = '';
+                resData.data.forEach(slide => {
+                    const card = document.createElement('div');
+                    card.className = 'slide-thumbnail-node';
+                    
+                    card.onclick = () => {
+                        const video = document.getElementById('videoPlayerNode');
+                        if(video) video.currentTime = parseInt(slide.timeStamp || 0);
+                    };
+
+                    let slideImg = slide.imageUrl || "";
+                    if (slideImg && slideImg.startsWith('cdn5/')) {
+                        slideImg = slideImg.replace('cdn5/', 'https://static.pw.live/');
+                    } else if (slideImg && !slideImg.startsWith('http')) {
+                        slideImg = `https://static.pw.live/${slideImg}`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="slide-img-wrapper">
+                            <img src="${slideImg}" alt="Timeline Slide" onerror="this.src='https://via.placeholder.com/140x80/171b3d/ffffff?text=Slide';">
+                        </div>
+                        <div class="slide-meta-label">Slide ${slide.serialNumber || 1}</div>
+                    `;
+                    carousel.appendChild(card);
+                });
+            } catch (e) {
+                carousel.innerHTML = `<div style="color:var(--text-muted); font-size:12px;">Timeline parsing error.</div>`;
+            }
+        }
+
+        async function loadLectureCommentsStack() {
+            const box = document.getElementById('commentsBoxScroller');
+            try {
+                const response = await fetch(`/api/comments?videoId=${VIDEO_ID}&page=1`);
+                const resData = await response.json();
+
+                box.innerHTML = '';
+                resData.data.forEach(comment => {
+                    const node = document.createElement('div');
+                    node.className = 'comment-node-message';
+                    const senderName = comment.createdBy?.name || "Student Node";
+
+                    node.innerHTML = `
+                        <div class="comment-avatar-circle">${senderName.charAt(0).toUpperCase()}</div>
+                        <div class="comment-text-bubble-area">
+                            <span class="commentator-user-name">${senderName}</span>
+                            <p class="commentator-body-payload">${comment.text}</p>
+                        </div>
+                    `;
+                    box.appendChild(node);
+                });
+                box.scrollTop = box.scrollHeight;
+            } catch(e) {
+                box.innerHTML = `<div>Comments stack error.</div>`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            bootShakaPlayer();
+            loadSlidesTimeline();
+            loadLectureCommentsStack();
+        });
+    </script>
+</body>
+</html>

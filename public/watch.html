@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Viewer — RangeXCoder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c16;
+            font-family: 'Inter', sans-serif;
+        }
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0b0c16;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(92, 91, 229, 0.1);
+            border-top-color: #5c5be5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 18px;
+        }
+        .loading-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
+        .loading-sub {
+            font-size: 12px;
+            color: #7d82a6;
+            font-weight: 600;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div class="loading-title">Securing Connection Stream...</div>
+        <div class="loading-sub">RangeXCoder High-Performance Engine</div>
+    </div>
+    <iframe id="streamIframe" allow="autoplay; fullscreen; encrypted-media"></iframe>
+
+    <script>
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const loading = document.getElementById('loading');
+            const iframe = document.getElementById('streamIframe');
+
+            if (!token) {
+                loading.innerHTML = '<div style="color: #ff5e5e; font-weight: 600; font-size: 16px;">Error: Access Token Missing</div>';
+                return;
+            }
+
+            try {
+                // Call local proxy endpoint to decrypt URL
+                const response = await fetch(`/api/decrypt-token?token=${encodeURIComponent(token)}`);
+                const resData = await response.json();
+                
+                if (resData.success && resData.url) {
+                    iframe.src = resData.url;
+                    
+                    // Display iframe once content starts loading
+                    iframe.onload = () => {
+                        loading.style.opacity = '0';
+                        setTimeout(() => { loading.style.display = 'none'; }, 500);
+                        iframe.style.display = 'block';
+                    };
+                } else {
+                    loading.innerHTML = '<div style="color: #ff5e5e; font-weight: 600; font-size: 16px;">Error: Invalid or Expired Access Token</div>';
+                }
+            } catch (e) {
+                console.error("Decryption request failed:", e);
+                loading.innerHTML = '<div style="color: #ff5e5e; font-weight: 600; font-size: 16px;">Error: Secure Connection Failed</div>';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

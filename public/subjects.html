@@ -6,11 +6,29 @@
     <title>Workspace — RangeXCoder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            const theme = localStorage.getItem('rangexcoder_theme') || 'day';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-dark-tabs: #e2e8f0;
+            --accent-purple: #5c5be5;
+            --text-white: #0f172a;
+            --text-muted: #64748b;
+            --badge-blue: #0084ff;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="night"] {
             --bg-main: #0b0c16;
             --bg-card: #151833;
             --bg-dark-tabs: #0e1022;
@@ -19,12 +37,13 @@
             --text-muted: #8e92b2;
             --badge-blue: #0084ff;
             --border-color: #1e234a;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-white); min-height: 100vh; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-white); min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
         
-        .header-backbar { background-color: var(--bg-main); padding: 18px 24px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+        .header-backbar { background-color: var(--bg-main); padding: 18px 24px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; transition: background-color 0.3s; }
         .back-btn { color: var(--text-white); font-size: 20px; text-decoration: none; cursor: pointer; }
         .batch-headline-title { font-size: 20px; font-weight: 800; }
 
@@ -73,9 +92,15 @@
 </head>
 <body>
 
-    <div class="header-backbar">
-        <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
-        <div class="batch-headline-title" id="batchNavbarTitle">Loading Workspace Node...</div>
+    <div class="header-backbar" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+            <div class="batch-headline-title" id="batchNavbarTitle">Loading Workspace Node...</div>
+        </div>
+        <button id="themeToggleBtn" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-white); padding: 8px 14px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; box-shadow: var(--shadow); outline: none;">
+            <i class="fas fa-sun" id="themeIcon"></i>
+            <span id="themeText">Day</span>
+        </button>
     </div>
 
     <div class="workspace-wrapper">
@@ -225,6 +250,33 @@
             section.style.display = 'none';
         }
     }
+
+    // Theme initialization and toggling
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+
+    function updateThemeUI(theme) {
+        if (theme === 'night') {
+            themeIcon.className = 'fas fa-moon';
+            themeText.textContent = 'Night';
+        } else {
+            themeIcon.className = 'fas fa-sun';
+            themeText.textContent = 'Day';
+        }
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = localStorage.getItem('rangexcoder_theme') || 'day';
+        const newTheme = currentTheme === 'day' ? 'night' : 'day';
+        localStorage.setItem('rangexcoder_theme', newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
+        updateThemeUI(newTheme);
+    });
+
+    // Initialize UI on load
+    const savedTheme = localStorage.getItem('rangexcoder_theme') || 'day';
+    updateThemeUI(savedTheme);
 
     window.addEventListener('DOMContentLoaded', initBatchWorkspace);
 </script>

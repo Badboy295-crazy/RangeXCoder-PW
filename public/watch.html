@@ -6,23 +6,107 @@
   <title>Units and Measurement 13 : HW Discussion || Significant Figures Rules on Add/Sub/Mul/Div || Rounding off || Trigonometry </title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.compiled.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      const theme = localStorage.getItem('rangexcoder_theme') || 'day';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
-    :root{--accent:#5a4bda;--bg:#000;--surface:#111118;--surface2:#1c1c27;--border:rgba(255,255,255,.1);--text:#e8e8f0;--muted:#7070a0;--note:#3ecfcf;--dpp:#ff9f43}
-    html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',-apple-system,sans-serif;color:var(--text)}
+    :root{
+      --accent:#5a4bda;
+      --bg:#fafafa;
+      --surface:#ffffff;
+      --surface2:#f1f5f9;
+      --border:rgba(0,0,0,.08);
+      --text:#1e293b;
+      --muted:#64748b;
+      --note:#06b6d4;
+      --dpp:#f97316;
+      --shadow:0 4px 12px rgba(0,0,0,0.05);
+    }
+    [data-theme="night"] {
+      --bg:#0b0c16;
+      --surface:#111118;
+      --surface2:#1c1c27;
+      --border:rgba(255,255,255,.1);
+      --text:#e8e8f0;
+      --muted:#7070a0;
+      --note:#3ecfcf;
+      --dpp:#ff9f43;
+      --shadow:0 8px 32px rgba(0,0,0,0.5);
+    }
+    html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);font-family:'Poppins',-apple-system,sans-serif;color:var(--text)}
     #shell{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
     #main-row{flex:1;min-height:0;display:flex;flex-direction:row;overflow:hidden}
     #video-col{flex:1;min-width:0;min-height:0;position:relative;background:#000;overflow:hidden}
     #vid-box{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
     video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;display:block;outline:none;pointer-events:none}
-    .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:10}
-    #ovLoad{background:rgba(11,12,22,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;z-index:10}
+    #ovLoad{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:background-color 0.3s, opacity 0.3s;}
+    [data-theme="day"] #ovLoad{background:rgba(255,255,255,0.95);}
+    [data-theme="night"] #ovLoad{background:rgba(11,12,22,0.95);}
     #ovLoad.off{display:none}
-    .spinner{width:50px;height:50px;border:3.5px solid rgba(0,132,255,0.15);border-top-color:#0084ff;border-radius:50%;animation:spin .8s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;filter:drop-shadow(0 0 12px rgba(0,132,255,0.6))}
-    #ovLoad p{font-size:15px;color:#e8e8f0;font-weight:500;margin-top:8px;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
-    #ovLoad #loadStage{font-size:11px;color:#0084ff;font-weight:600;margin-top:4px;letter-spacing:1.5px;font-family:monospace;text-transform:uppercase;text-shadow:0 0 8px rgba(0,132,255,0.3)}
-    #ovErr{background:rgba(0,0,0,.88);display:none;padding:20px;text-align:center}
+    .spinner{width:45px;height:45px;border:3px solid rgba(0,132,255,0.1);border-top-color:#0084ff;border-radius:50%;animation:spin .8s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;filter:drop-shadow(0 0 8px rgba(0,132,255,0.4))}
+    .load-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      width: min(340px, 90%);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .load-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+    #loadMsg {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+    }
+    #loadStage {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: inherit !important;
+      text-transform: none !important;
+      letter-spacing: 0px !important;
+      text-shadow: none !important;
+      margin-top: 0px !important;
+    }
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      border-radius: 3px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .progress-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    #ovErr{background:var(--surface);display:none;padding:20px;text-align:center}
     #ovErr.on{display:flex}
     #ovErr p{font-size:14px;color:#ff6584;max-width:300px;line-height:1.5}
     #ovErr button{padding:8px 22px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;margin-top:4px}
@@ -41,11 +125,11 @@
     #player-title{flex:1;min-width:0;font-size:14px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #tdBtn{background:none;border:none;color:#fff;cursor:pointer;padding:6px;display:flex;align-items:center;border-radius:8px;flex-shrink:0;position:relative}
     #tdBtn>svg{width:22px;height:22px;fill:#fff}
-    #tdMenu{position:absolute;top:calc(100% + 2px);right:0;background:rgba(12,12,20,.98);border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden;min-width:190px;z-index:200;display:none;box-shadow:0 8px 32px rgba(0,0,0,.9)}
+    #tdMenu{position:absolute;top:calc(100% + 2px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:190px;z-index:200;display:none;box-shadow:var(--shadow)}
     #tdMenu.on{display:block}
-    .tdm-row{display:flex;align-items:center;gap:10px;padding:14px 16px;color:#fff;font-size:14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07)}
+    .tdm-row{display:flex;align-items:center;gap:10px;padding:14px 16px;color:var(--text);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border)}
     .tdm-row:last-child{border-bottom:none}
-    .tdm-row:active{background:rgba(255,255,255,.08)}
+    .tdm-row:active{background:var(--surface2)}
     .tdm-row svg{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none}
     #ctrl-mid{flex:1}
     #player-footer{flex-shrink:0;background:linear-gradient(transparent 0%,rgba(0,0,0,.82) 100%);padding:6px 0 10px}
@@ -74,30 +158,31 @@
     .vol-grp:hover .vol-range,.vol-grp:focus-within .vol-range{width:52px;opacity:1;margin-left:4px}
     .vol-range::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff}
     .vol-range::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;border:none}
+    .vol-boost-badge {background:#f97316;color:#fff;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px;margin-left:5px;}
     .tl-btn{display:none}
     .layout-desktop .tl-btn{display:flex}
     #settBd{position:absolute;inset:0;z-index:25;display:none}
     #settBd.on{display:block}
     #settPanel{position:absolute;bottom:80px;right:8px;width:min(260px,calc(100% - 16px));z-index:100;display:none;isolation:isolate}
     #settPanel.on{display:block}
-    .sc{background:rgba(10,10,18,.98);border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 4px 32px rgba(0,0,0,.9)}
+    .sc{background:var(--surface);border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow)}
     .s-main{display:flex;flex-direction:column}
     .s-main.off{display:none}
     .s-sub{display:none;flex-direction:column}
     .s-sub.on{display:flex}
-    .s-row{display:flex;align-items:center;justify-content:space-between;padding:14px 17px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07)}
+    .s-row{display:flex;align-items:center;justify-content:space-between;padding:14px 17px;cursor:pointer;border-bottom:1px solid var(--border)}
     .s-row:last-child{border-bottom:none}
-    .s-row:active{background:rgba(255,255,255,.05)}
-    .s-lbl{color:#fff;font-size:15px;font-weight:500}
-    .s-val{display:flex;align-items:center;gap:4px;color:rgba(255,255,255,.42);font-size:14px}
-    .s-back{display:flex;align-items:center;gap:10px;padding:12px 17px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer}
-    .s-back span{color:#fff;font-size:15px;font-weight:700}
+    .s-row:active{background:var(--surface2)}
+    .s-lbl{color:var(--text);font-size:15px;font-weight:500}
+    .s-val{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:14px}
+    .s-back{display:flex;align-items:center;gap:10px;padding:12px 17px;border-bottom:1px solid var(--border);cursor:pointer}
+    .s-back span{color:var(--text);font-size:15px;font-weight:700}
     .s-scroll{overflow-y:auto;max-height:220px}
-    .sopt{display:flex;align-items:center;justify-content:space-between;padding:13px 17px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06)}
+    .sopt{display:flex;align-items:center;justify-content:space-between;padding:13px 17px;cursor:pointer;border-bottom:1px solid var(--border)}
     .sopt:last-child{border-bottom:none}
-    .sopt.active{background:rgba(90,75,218,.2)}
-    .sopt span{color:#fff;font-size:14px}
-    .radio{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .sopt.active{background:rgba(90,75,218,.15)}
+    .sopt span{color:var(--text);font-size:14px}
+    .radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .sopt.active .radio{border-color:var(--accent);background:var(--accent)}
     .rdot{width:6px;height:6px;border-radius:50%;background:#fff;display:none}
     .sopt.active .rdot{display:block}
@@ -191,7 +276,18 @@
     <div id="video-col">
       <div id="vid-box">
         <video id="vid" playsinline preload="auto"></video>
-        <div class="ov" id="ovLoad"><div class="spinner"></div><p id="loadMsg">Initializing…</p><p id="loadStage" style="font-size:11px;color:rgba(255,255,255,.38);margin-top:2px;letter-spacing:.4px;font-family:monospace;"></p></div>
+        <div class="ov" id="ovLoad">
+          <div class="load-card">
+            <div class="spinner"></div>
+            <div class="load-title">RangeXCoder Player</div>
+            <p id="loadMsg">Initializing secure stream...</p>
+            <p id="loadStage">Connecting to localhost engine</p>
+            <div class="progress-container">
+              <div class="progress-bar-fill" id="ovLoadBarFill" style="width: 5%"></div>
+            </div>
+            <div class="progress-text" id="ovLoadPercent">5%</div>
+          </div>
+        </div>
         <div class="ov" id="ovErr">
           <span style="font-size:28px">⚠️</span>
           <p id="errMsg">Something went wrong.</p>
@@ -284,9 +380,13 @@
             <div class="s-main" id="sMain">
               <div class="s-row" id="sSpeedRow"><span class="s-lbl">Speed</span><div class="s-val"><span id="sSpeedVal">Normal</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
               <div class="s-row" id="sQualRow"><span class="s-lbl">Quality</span><div class="s-val"><span id="sQualVal">Auto</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
+              <div class="s-row" id="sBoostRow"><span class="s-lbl">Volume Boost</span><div class="s-val"><span id="sBoostVal">Off</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
+              <div class="s-row" id="sThemeRow"><span class="s-lbl">Theme</span><div class="s-val"><span id="sThemeVal">Day</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
             </div>
-            <div class="s-sub" id="sSpeedSub"><div class="s-back" id="sSpeedBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg><span>Speed</span></div><div class="s-scroll" id="sSpeedOpts"></div></div>
-            <div class="s-sub" id="sQualSub"><div class="s-back" id="sQualBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg><span>Quality</span></div><div class="s-scroll" id="sQualOpts"></div></div>
+            <div class="s-sub" id="sSpeedSub"><div class="s-back" id="sSpeedBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg><span>Speed</span></div><div class="s-scroll" id="sSpeedOpts"></div></div>
+            <div class="s-sub" id="sQualSub"><div class="s-back" id="sQualBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg><span>Quality</span></div><div class="s-scroll" id="sQualOpts"></div></div>
+            <div class="s-sub" id="sBoostSub"><div class="s-back" id="sBoostBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg><span>Volume Boost</span></div><div class="s-scroll" id="sBoostOpts"></div></div>
+            <div class="s-sub" id="sThemeSub"><div class="s-back" id="sThemeBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg><span>Theme</span></div><div class="s-scroll" id="sThemeOpts"></div></div>
           </div>
         </div>
       </div>
@@ -528,21 +628,170 @@ vid.addEventListener('volumechange',updMuteIcon);
 updVol();updMuteIcon();
 
 /* ── SETTINGS ──────────────────────────────── */
-function showSub(v){sMain.classList.toggle('off',v!=='main');sSpeedSub.classList.toggle('on',v==='speed');sQualSub.classList.toggle('on',v==='quality');}
-function openSett(){settOpen=true;showSub('main');settPanel.classList.add('on');settBd.classList.add('on');clearTimeout(hideTimer);}
+function showSub(v){
+  sMain.classList.toggle('off',v!=='main');
+  sSpeedSub.classList.toggle('on',v==='speed');
+  sQualSub.classList.toggle('on',v==='quality');
+  document.getElementById('sBoostSub').classList.toggle('on',v==='boost');
+  document.getElementById('sThemeSub').classList.toggle('on',v==='theme');
+}
+function openSett(){settOpen=true;showSub('main');settPanel.classList.add('on');settBd.classList.add('on');clearTimeout(hideTimer);buildThemeOpts();buildBoostOpts();}
 function closeSett(){settOpen=false;settPanel.classList.remove('on');settBd.classList.remove('on');showSub('main');scheduleHide();}
 settBtn.addEventListener('click',e=>{e.stopPropagation();settOpen?closeSett():openSett();});
 settBd.addEventListener('click',e=>{e.stopPropagation();closeSett();});
 settPanel.addEventListener('click',e=>e.stopPropagation());
 document.getElementById('sSpeedRow').addEventListener('click',e=>{e.stopPropagation();showSub('speed');});
 document.getElementById('sQualRow').addEventListener('click',e=>{e.stopPropagation();showSub('quality');});
+document.getElementById('sBoostRow').addEventListener('click',e=>{e.stopPropagation();showSub('boost');});
+document.getElementById('sThemeRow').addEventListener('click',e=>{e.stopPropagation();showSub('theme');});
 document.getElementById('sSpeedBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
 document.getElementById('sQualBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
+document.getElementById('sBoostBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
+document.getElementById('sThemeBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
 
 function buildSpeed(){const c=document.getElementById('sSpeedOpts');c.innerHTML='';[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6].forEach(sp=>{const lbl=sp===1?'Normal':sp+'x';const d=document.createElement('div');d.className='sopt'+(sp===1?' active':'');d.innerHTML=`<span>${lbl}</span><div class="radio"><div class="rdot"></div></div>`;d.onclick=e=>{e.stopPropagation();vid.playbackRate=sp;spdBadge.textContent=sp+'x';document.getElementById('sSpeedVal').textContent=lbl;c.querySelectorAll('.sopt').forEach(o=>o.classList.remove('active'));d.classList.add('active');closeSett();};c.appendChild(d);});}
 
 function buildQual(levels){const c=document.getElementById('sQualOpts');c.innerHTML='';[{label:'Auto',value:-1},...levels].forEach(lv=>{const d=document.createElement('div');d.className='sopt'+(lv.value===-1?' active':'');d.innerHTML=`<span>${lv.label}</span><div class="radio"><div class="rdot"></div></div>`;d.onclick=e=>{e.stopPropagation();document.getElementById('sQualVal').textContent=lv.label;c.querySelectorAll('.sopt').forEach(o=>o.classList.remove('active'));d.classList.add('active');if(hlsInst){if(lv.value===-1){hlsInst.autoLevelCapping=-1;hlsInst.nextLevel=-1;}else{hlsInst.autoLevelCapping=lv.value;hlsInst.nextLevel=lv.value;}}if(shakaInst){try{if(lv.value===-1){shakaInst.configure({abr:{enabled:true}});}else{const t=shakaInst.getVariantTracks().find(t=>t.id===lv.value);if(t){shakaInst.configure({abr:{enabled:false}});shakaInst.selectVariantTrack(t,true);}}}catch{}}closeSett();};c.appendChild(d);});}
-buildSpeed();buildQual([]);
+
+let audioCtx = null;
+let sourceNode = null;
+let gainNode = null;
+let filterNode = null;
+let presenceFilter = null;
+let vocalBoostLevel = localStorage.getItem('rangexcoder_boost') || 'off';
+
+function initAudioNodes() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sourceNode = audioCtx.createMediaElementSource(vid);
+    
+    gainNode = audioCtx.createGain();
+    filterNode = audioCtx.createBiquadFilter();
+    filterNode.type = 'highpass';
+    filterNode.frequency.value = 20; // Default flat
+    
+    presenceFilter = audioCtx.createBiquadFilter();
+    presenceFilter.type = 'peaking';
+    presenceFilter.frequency.value = 2000;
+    presenceFilter.Q.value = 1.0;
+    presenceFilter.gain.value = 0;
+    
+    sourceNode.connect(filterNode);
+    filterNode.connect(presenceFilter);
+    presenceFilter.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+  } catch (e) {
+    console.error("Audio Context Init Error:", e);
+  }
+}
+
+function applyVocalBoost(level) {
+  vocalBoostLevel = level;
+  localStorage.setItem('rangexcoder_boost', level);
+  
+  let oldBadge = document.getElementById('boostBadge');
+  if (oldBadge) oldBadge.remove();
+  
+  if (level === 'off') {
+    if (gainNode) {
+      gainNode.gain.value = 1.0;
+      filterNode.frequency.value = 20;
+      presenceFilter.gain.value = 0;
+    }
+    document.getElementById('sBoostVal').textContent = 'Off';
+  } else {
+    initAudioNodes();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    if (audioCtx) {
+      if (level === 'vocal') {
+        gainNode.gain.value = 1.5;
+        filterNode.frequency.value = 180;
+        presenceFilter.gain.value = 6;
+        document.getElementById('sBoostVal').textContent = 'Clear Vocals (1.5x)';
+      } else if (level === '2x') {
+        gainNode.gain.value = 2.0;
+        filterNode.frequency.value = 180;
+        presenceFilter.gain.value = 8;
+        document.getElementById('sBoostVal').textContent = 'Boost 2x';
+      } else if (level === '3x') {
+        gainNode.gain.value = 3.0;
+        filterNode.frequency.value = 180;
+        presenceFilter.gain.value = 8;
+        document.getElementById('sBoostVal').textContent = 'Boost 3x';
+      }
+      
+      const badge = document.createElement('span');
+      badge.id = 'boostBadge';
+      badge.className = 'vol-boost-badge';
+      badge.textContent = level === 'vocal' ? '1.5x' : level.toUpperCase();
+      document.querySelector('.vol-grp').appendChild(badge);
+    }
+  }
+}
+
+function buildBoostOpts(){
+  const c = document.getElementById('sBoostOpts');
+  c.innerHTML = '';
+  const opts = [
+    { label: 'Off (1x)', value: 'off' },
+    { label: 'Clear Vocals (1.5x)', value: 'vocal' },
+    { label: 'Boost 2x', value: '2x' },
+    { label: 'Boost 3x', value: '3x' }
+  ];
+  opts.forEach(op => {
+    const active = vocalBoostLevel === op.value;
+    const d = document.createElement('div');
+    d.className = 'sopt' + (active ? ' active' : '');
+    d.innerHTML = `<span>${op.label}</span><div class="radio"><div class="rdot"></div></div>`;
+    d.onclick = e => {
+      e.stopPropagation();
+      applyVocalBoost(op.value);
+      c.querySelectorAll('.sopt').forEach(o => o.classList.remove('active'));
+      d.classList.add('active');
+      closeSett();
+    };
+    c.appendChild(d);
+  });
+}
+
+function buildThemeOpts(){
+  const c = document.getElementById('sThemeOpts');
+  c.innerHTML = '';
+  const currentTheme = localStorage.getItem('rangexcoder_theme') || 'day';
+  document.getElementById('sThemeVal').textContent = currentTheme === 'day' ? 'Day' : 'Night';
+  
+  const opts = [
+    { label: 'Day Mode', value: 'day' },
+    { label: 'Night Mode', value: 'night' }
+  ];
+  opts.forEach(op => {
+    const active = currentTheme === op.value;
+    const d = document.createElement('div');
+    d.className = 'sopt' + (active ? ' active' : '');
+    d.innerHTML = `<span>${op.label}</span><div class="radio"><div class="rdot"></div></div>`;
+    d.onclick = e => {
+      e.stopPropagation();
+      localStorage.setItem('rangexcoder_theme', op.value);
+      document.documentElement.setAttribute('data-theme', op.value);
+      document.getElementById('sThemeVal').textContent = op.label.replace(' Mode', '');
+      c.querySelectorAll('.sopt').forEach(o => o.classList.remove('active'));
+      d.classList.add('active');
+      closeSett();
+    };
+    c.appendChild(d);
+  });
+}
+
+vid.addEventListener('play', () => {
+  if (vocalBoostLevel !== 'off') {
+    applyVocalBoost(vocalBoostLevel);
+  }
+}, { once: true });
+
+buildSpeed();buildQual([]);buildBoostOpts();buildThemeOpts();
 
 /* ── FULLSCREEN ────────────────────────────── */
 fsBtn.addEventListener('click',e=>{e.stopPropagation();const fs=!!(document.fullscreenElement||document.webkitFullscreenElement);if(fs)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else{const el=document.getElementById('shell');(el.requestFullscreen||el.webkitRequestFullscreen).call(el);}});
@@ -755,29 +1004,53 @@ async function fetchDynamicVideoData() {
     
     // Animated loading stages so user feels progress
     const stages = [
-        ["Securing Connection...", "Establishing encrypted tunnel"],
-        ["Authenticating Stream...", "Verifying access credentials"],
-        ["Loading Player Data...", "Fetching video metadata"],
-        ["Preparing Stream...", "Initializing DRM decryption"],
-        ["Almost Ready...", "Loading stream player"]
+        ["Securing Connection...", "Establishing encrypted tunnel", 15],
+        ["Authenticating Stream...", "Verifying access credentials", 35],
+        ["Loading Player Data...", "Fetching video metadata", 60],
+        ["Preparing Stream...", "Initializing DRM decryption", 80],
+        ["Almost Ready...", "Loading stream player", 95]
     ];
     let stageIdx = 0;
+    let currentPct = 5;
+    let targetPct = 15;
+    
     showLoading(stages[0][0], stages[0][1]);
+    
+    // Progress bar updater
+    const progressTimer = setInterval(function() {
+        if (currentPct < targetPct) {
+            currentPct++;
+            const fill = document.getElementById('ovLoadBarFill');
+            const txt = document.getElementById('ovLoadPercent');
+            if (fill) fill.style.width = currentPct + '%';
+            if (txt) txt.textContent = currentPct + '%';
+        }
+    }, 30);
+    
     const stageTimer = setInterval(function() {
         stageIdx++;
         if (stageIdx < stages.length) {
             showLoading(stages[stageIdx][0], stages[stageIdx][1]);
+            targetPct = stages[stageIdx][2];
         }
-    }, 1000);
+    }, 900);
     
     let redirected = false;
-    // Fallback: If API call takes longer than 5 seconds, redirect directly to original stream page
+    // Fallback: If API call takes longer than 5.5 seconds, redirect directly to original stream page
     const redirectTimeout = setTimeout(function() {
         if (redirected) return;
         redirected = true;
         clearInterval(stageTimer);
-        window.location.href = '/api/go?token=' + encodeURIComponent(token);
-    }, 5000);
+        clearInterval(progressTimer);
+        const fill = document.getElementById('ovLoadBarFill');
+        const txt = document.getElementById('ovLoadPercent');
+        if (fill) fill.style.width = '100%';
+        if (txt) txt.textContent = '100%';
+        showLoading("Redirecting to original stream...", "Taking longer than expected");
+        setTimeout(function() {
+            window.location.href = '/api/go?token=' + encodeURIComponent(token);
+        }, 500);
+    }, 5500);
     
     try {
         const response = await fetch('/api/video-data?token=' + encodeURIComponent(token));
@@ -786,9 +1059,15 @@ async function fetchDynamicVideoData() {
         if (redirected) return;
         clearTimeout(redirectTimeout);
         clearInterval(stageTimer);
+        clearInterval(progressTimer);
         redirected = true;
         
         if (resData.success && resData.videoData) {
+            const fill = document.getElementById('ovLoadBarFill');
+            const txt = document.getElementById('ovLoadPercent');
+            if (fill) fill.style.width = '100%';
+            if (txt) txt.textContent = '100%';
+            
             VIDEO_DATA = resData.videoData;
             NOTES = resData.notes || [];
             DPP_NOTES = resData.dppNotes || [];
@@ -825,6 +1104,7 @@ async function fetchDynamicVideoData() {
         if (redirected) return;
         clearTimeout(redirectTimeout);
         clearInterval(stageTimer);
+        clearInterval(progressTimer);
         redirected = true;
         console.error("API call failed, redirecting:", err);
         window.location.href = '/api/go?token=' + encodeURIComponent(token);

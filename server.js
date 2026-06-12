@@ -295,8 +295,29 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
         throw new Error("No videoId found in lecture details.");
     }
     
-    const videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
-    const videoUrl = videoRes.data?.data?.videoUrl;
+    const targetTag = tag || match.tags?.[0]?._id || match.topicId;
+    let rawNotes = [];
+    let rawDpps = [];
+    let videoRes = null;
+
+    try {
+        const [vRes, notesRes, dppsRes] = await Promise.all([
+            axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 }),
+            targetTag ? axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=notes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null) : null,
+            targetTag ? axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=DppNotes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null) : null
+        ]);
+        videoRes = vRes;
+        rawNotes = notesRes?.data?.data || [];
+        rawDpps = dppsRes?.data?.data || [];
+    } catch (e) {
+        console.error("Parallel details and notes fetch error:", e.message);
+        if (!videoRes) {
+            // Rethrow or retry once if videoRes failed
+            videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
+        }
+    }
+
+    const videoUrl = videoRes?.data?.data?.videoUrl;
     if (!videoUrl) {
         throw new Error("No videoUrl returned from PW API.");
     }
@@ -308,24 +329,6 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     const uuid = uuidMatch[1];
     
     const constructedHlsUrl = `https://stream.pimaxer.in/${uuid}/master.m3u8`;
-    
-    // Fetch notes & DPPs in parallel
-    const targetTag = tag || match.tags?.[0]?._id || match.topicId;
-    let rawNotes = [];
-    let rawDpps = [];
-    
-    if (targetTag) {
-        try {
-            const [notesRes, dppsRes] = await Promise.all([
-                axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=notes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null),
-                axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=DppNotes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null)
-            ]);
-            rawNotes = notesRes?.data?.data || [];
-            rawDpps = dppsRes?.data?.data || [];
-        } catch (e) {
-            console.error("Notes fetch error:", e.message);
-        }
-    }
     
     const parseNotes = (items) => {
         const result = [];

@@ -6,11 +6,30 @@
     <title>Batches — RangeXCoder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            const theme = localStorage.getItem('rangexcoder_theme') || 'day';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-search: #f1f5f9;
+            --accent-purple: #5c5be5;
+            --accent-hover: #4a49c6;
+            --text-white: #0f172a;
+            --text-muted: #64748b;
+            --price-green: #10b981;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="night"] {
             --bg-main: #0b0c16;
             --bg-card: #151833;
             --bg-search: #12142d;
@@ -20,14 +39,15 @@
             --text-muted: #8e92b2;
             --price-green: #00ff66;
             --border-color: #20254e;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-white); min-height: 100vh; padding: 25px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-white); min-height: 100vh; padding: 25px; transition: background-color 0.3s, color 0.3s; }
         .container { max-width: 1280px; margin: 0 auto; }
         
         .navbar { display: flex; align-items: center; margin-bottom: 25px; }
-        .logo-box { background-color: var(--accent-purple); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; margin-right: 12px; }
+        .logo-box { background-color: var(--accent-purple); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; margin-right: 12px; color: #ffffff; }
         .logo-text { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
 
         .search-container { position: relative; width: 100%; margin-bottom: 20px; }
@@ -77,9 +97,15 @@
 <body>
 
     <div class="container">
-        <div class="navbar">
-            <div class="logo-box">R</div>
-            <div class="logo-text">RangeXCoder</div>
+        <div class="navbar" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center;">
+                <div class="logo-box">R</div>
+                <div class="logo-text">RangeXCoder</div>
+            </div>
+            <button id="themeToggleBtn" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-white); padding: 8px 14px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; box-shadow: var(--shadow); outline: none;">
+                <i class="fas fa-sun" id="themeIcon"></i>
+                <span id="themeText">Day</span>
+            </button>
         </div>
 
         <div class="search-container">
@@ -234,6 +260,34 @@
         searchBar.addEventListener('input', renderSystem);
         tabTotal.addEventListener('click', () => { tabTotal.className='tab active'; tabFav.className='tab'; currentTab='total'; renderSystem(); });
         tabFav.addEventListener('click', () => { tabFav.className='tab active'; tabTotal.className='tab'; currentTab='fav'; renderSystem(); });
+        
+        // Theme initialization and toggling
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+
+        function updateThemeUI(theme) {
+            if (theme === 'night') {
+                themeIcon.className = 'fas fa-moon';
+                themeText.textContent = 'Night';
+            } else {
+                themeIcon.className = 'fas fa-sun';
+                themeText.textContent = 'Day';
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('rangexcoder_theme') || 'day';
+            const newTheme = currentTheme === 'day' ? 'night' : 'day';
+            localStorage.setItem('rangexcoder_theme', newTheme);
+            document.documentElement.setAttribute('data-theme', newTheme);
+            updateThemeUI(newTheme);
+        });
+
+        // Initialize UI on load
+        const savedTheme = localStorage.getItem('rangexcoder_theme') || 'day';
+        updateThemeUI(savedTheme);
+
         window.addEventListener('DOMContentLoaded', fetchBatches);
     </script>
 </body>

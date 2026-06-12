@@ -237,7 +237,17 @@ app.get('/api/play', async (req, res) => {
         }
     } catch (error) {
         console.error("Secure stream proxy error:", error.message);
-        res.status(500).send("Failed to load secure stream player.");
+        const errorDetails = {
+            message: error.message,
+            status: error.response ? error.response.status : null,
+            headers: error.response ? error.response.headers : null,
+            dataSnippet: error.response && typeof error.response.data === 'string' ? error.response.data.substring(0, 1000) : null
+        };
+        res.status(500).json({
+            success: false,
+            message: "Failed to load secure stream player on server.",
+            error: errorDetails
+        });
     }
 });
 

@@ -242,6 +242,97 @@ app.get('/api/play', async (req, res) => {
     }
 });
 
+// Get extracted stream and DRM keys for the custom player
+app.get('/api/video-data', async (req, res) => {
+    const { token } = req.query;
+    if (!token) {
+        return res.status(400).json({ success: false, message: "Access token is missing." });
+    }
+    const decryptedUrl = decrypt(token);
+    if (!decryptedUrl) {
+        return res.status(400).json({ success: false, message: "Invalid or expired access token." });
+    }
+
+    try {
+        const response = await axios.get(decryptedUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+
+        const html = response.data;
+        const videoDataMatch = html.match(/(?:const|let|var)\s+VIDEO_DATA\s*=\s*({[\s\S]*?});/);
+        const pwHeadersMatch = html.match(/(?:const|let|var)\s+PW_HEADERS\s*=\s*({[\s\S]*?});/);
+        const notesMatch = html.match(/(?:const|let|var)\s+NOTES\s*=\s*([\s\S]*?);/);
+        const dppNotesMatch = html.match(/(?:const|let|var)\s+DPP_NOTES\s*=\s*([\s\S]*?);/);
+        const topicNameMatch = html.match(/(?:const|let|var)\s+TOPIC_NAME\s*=\s*([\s\S]*?);/);
+
+        if (!videoDataMatch) {
+            throw new Error("VIDEO_DATA not found in stream player page.");
+        }
+
+        let videoData = null;
+        let pwHeaders = null;
+        let notes = [];
+        let dppNotes = [];
+        let topicName = "Video Stream Player";
+
+        const parseJsObject = (matchStr) => {
+            try {
+                return JSON.parse(matchStr);
+            } catch (e) {
+                try {
+                    const cleaned = matchStr
+                        .replace(/([{,]\s*)([a-zA-Z0-9_\-]+)\s*:/g, '$1"$2":')
+                        .replace(/'/g, '"');
+                    return JSON.parse(cleaned);
+                } catch (e2) {
+                    return null;
+                }
+            }
+        };
+
+        videoData = parseJsObject(videoDataMatch[1]);
+
+        if (pwHeadersMatch) {
+            pwHeaders = parseJsObject(pwHeadersMatch[1]);
+        }
+
+        if (notesMatch) {
+            notes = parseJsObject(notesMatch[1]) || [];
+        }
+
+        if (dppNotesMatch) {
+            dppNotes = parseJsObject(dppNotesMatch[1]) || [];
+        }
+
+        if (topicNameMatch) {
+            topicName = topicNameMatch[1].trim().replace(/^['"`]|['"`]$/g, '');
+        }
+
+        if (!videoData || !videoData.url) {
+            throw new Error("Could not parse video url from VIDEO_DATA.");
+        }
+
+        res.json({
+            success: true,
+            videoData: videoData,
+            pwHeaders: pwHeaders || {},
+            notes: notes,
+            dppNotes: dppNotes,
+            topicName: topicName
+        });
+
+    } catch (error) {
+        console.error("Video data extraction failed:", error.message);
+        res.json({
+            success: false,
+            message: error.message,
+            fallbackUrl: decryptedUrl
+        });
+    }
+});
+
 // Proxy DPP quiz solution videos to keep them on our domain
 app.get('/get-test-solution-video', async (req, res) => {
     const queryParams = new URLSearchParams(req.query).toString();

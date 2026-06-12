@@ -17,11 +17,11 @@
     #vid-box{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
     video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;display:block;outline:none;pointer-events:none}
     .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:10}
-    #ovLoad{background:rgba(0,0,0,.82)}
+    #ovLoad{background:rgba(11,12,22,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
     #ovLoad.off{display:none}
-    .spinner{width:40px;height:40px;border:3px solid rgba(90,75,218,.18);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-    #ovLoad p{font-size:13px;color:rgba(255,255,255,.65)}
-    #ovLoad #loadStage{font-size:11px;color:rgba(255,255,255,.38);margin-top:3px;letter-spacing:.5px;font-family:monospace;text-transform:uppercase}
+    .spinner{width:50px;height:50px;border:3.5px solid rgba(0,132,255,0.15);border-top-color:#0084ff;border-radius:50%;animation:spin .8s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;filter:drop-shadow(0 0 12px rgba(0,132,255,0.6))}
+    #ovLoad p{font-size:15px;color:#e8e8f0;font-weight:500;margin-top:8px;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
+    #ovLoad #loadStage{font-size:11px;color:#0084ff;font-weight:600;margin-top:4px;letter-spacing:1.5px;font-family:monospace;text-transform:uppercase;text-shadow:0 0 8px rgba(0,132,255,0.3)}
     #ovErr{background:rgba(0,0,0,.88);display:none;padding:20px;text-align:center}
     #ovErr.on{display:flex}
     #ovErr p{font-size:14px;color:#ff6584;max-width:300px;line-height:1.5}
@@ -744,24 +744,6 @@ window.addEventListener('beforeunload',()=>{if(shakaInst){try{shakaInst.destroy(
 showLoading('Initializing…','Starting player');
 showControls();scheduleHide();
 
-// Domain Spoof: Instead of redirecting to stream.testuk.org (losing our domain),
-// embed their player in a full-screen iframe so URL bar still shows OUR domain
-function loadFallbackIframe(url) {
-    // Hide the entire custom player UI
-    document.getElementById('shell').style.display = 'none';
-    document.getElementById('bottom-panel').style.display = 'none';
-    // Create full-screen iframe
-    var iframe = document.createElement('iframe');
-    iframe.src = url;
-    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:99999;background:#000;';
-    iframe.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
-    iframe.allowFullscreen = true;
-    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-presentation');
-    document.body.appendChild(iframe);
-    // Update title
-    document.title = 'Stream Player — RangeXCoder';
-}
-
 async function fetchDynamicVideoData() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -789,25 +771,12 @@ async function fetchDynamicVideoData() {
     }, 1000);
     
     let redirected = false;
-    // Fallback: If API call takes longer than 5 seconds, load iframe with original stream page
+    // Fallback: If API call takes longer than 5 seconds, redirect directly to original stream page
     const redirectTimeout = setTimeout(function() {
         if (redirected) return;
         redirected = true;
         clearInterval(stageTimer);
-        // Fetch the decrypted URL then load it in an iframe (keeps OUR domain in URL bar)
-        fetch('/api/decrypt-token?token=' + encodeURIComponent(token))
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-                if (d.success && d.url) {
-                    loadFallbackIframe(d.url);
-                } else {
-                    // Last resort: redirect via /api/go
-                    window.location.href = '/api/go?token=' + encodeURIComponent(token);
-                }
-            })
-            .catch(function() {
-                window.location.href = '/api/go?token=' + encodeURIComponent(token);
-            });
+        window.location.href = '/api/go?token=' + encodeURIComponent(token);
     }, 5000);
     
     try {
@@ -845,40 +814,20 @@ async function fetchDynamicVideoData() {
                     document.getElementById('panelInnerMob').innerHTML = pHTML;
                 }
             } catch (err) {
-                console.error("Failed to initialize player, loading iframe fallback:", err);
-                if (resData.fallbackUrl) {
-                    loadFallbackIframe(resData.fallbackUrl);
-                } else {
-                    showError(err.message || 'Failed to initialize player.');
-                }
+                console.error("Failed to initialize player, redirecting:", err);
+                window.location.href = '/api/go?token=' + encodeURIComponent(token);
             }
         } else {
-            console.warn("Proxy extraction failed, loading iframe fallback...");
-            if (resData.fallbackUrl) {
-                loadFallbackIframe(resData.fallbackUrl);
-            } else {
-                showError(resData.message || "Failed to load secure stream player.");
-            }
+            console.warn("Proxy extraction failed, redirecting...");
+            window.location.href = '/api/go?token=' + encodeURIComponent(token);
         }
     } catch (err) {
         if (redirected) return;
         clearTimeout(redirectTimeout);
         clearInterval(stageTimer);
         redirected = true;
-        console.error("API call failed, loading iframe fallback:", err);
-        // Fetch decrypted URL and load iframe (keeps our domain)
-        fetch('/api/decrypt-token?token=' + encodeURIComponent(token))
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-                if (d.success && d.url) {
-                    loadFallbackIframe(d.url);
-                } else {
-                    window.location.href = '/api/go?token=' + encodeURIComponent(token);
-                }
-            })
-            .catch(function() {
-                window.location.href = '/api/go?token=' + encodeURIComponent(token);
-            });
+        console.error("API call failed, redirecting:", err);
+        window.location.href = '/api/go?token=' + encodeURIComponent(token);
     }
 }
 

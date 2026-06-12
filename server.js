@@ -172,7 +172,7 @@ app.get('/api/get-token', (req, res) => {
     
     let targetURL = "";
     if (type === 'video') {
-        targetURL = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=video`;
+        targetURL = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=video&tag=${tag || ''}`;
     } else if (type === 'note') {
         targetURL = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=note&noteIndex=0&isDpp=false`;
     } else if (type === 'dpp-pdf') {
@@ -256,6 +256,113 @@ app.get('/api/play', async (req, res) => {
     }
 });
 
+async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
+    let match = null;
+    if (tag) {
+        const contentsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${tag}`;
+        const res = await axios.get(contentsUrl, { headers: HEADERS, timeout: 5000 });
+        const items = res.data?.data || [];
+        match = items.find(item => item._id === scheduleId);
+    }
+    
+    if (!match) {
+        // Fallback: parallel search over all topics
+        const topicsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/topics?page=1`;
+        const topicsRes = await axios.get(topicsUrl, { headers: HEADERS, timeout: 5000 });
+        const topics = topicsRes.data?.data || [];
+        
+        const reqs = topics.map(t => 
+            axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${t._id}`, { headers: HEADERS, timeout: 5000 })
+                .then(res => res.data?.data || [])
+                .catch(() => [])
+        );
+        const results = await Promise.all(reqs);
+        for (const items of results) {
+            const found = items.find(item => item._id === scheduleId);
+            if (found) {
+                match = found;
+                break;
+            }
+        }
+    }
+    
+    if (!match) {
+        throw new Error("Lecture schedule ID not found in batch contents.");
+    }
+    
+    const videoId = match.videoDetails?._id || match.videoDetails?.id;
+    if (!videoId) {
+        throw new Error("No videoId found in lecture details.");
+    }
+    
+    const videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
+    const videoUrl = videoRes.data?.data?.videoUrl;
+    if (!videoUrl) {
+        throw new Error("No videoUrl returned from PW API.");
+    }
+    
+    const uuidMatch = videoUrl.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+    if (!uuidMatch) {
+        throw new Error("Failed to extract UUID from videoUrl.");
+    }
+    const uuid = uuidMatch[1];
+    
+    const constructedHlsUrl = `https://stream.pimaxer.in/${uuid}/master.m3u8`;
+    
+    // Fetch notes & DPPs in parallel
+    const targetTag = tag || match.tags?.[0]?._id || match.topicId;
+    let rawNotes = [];
+    let rawDpps = [];
+    
+    if (targetTag) {
+        try {
+            const [notesRes, dppsRes] = await Promise.all([
+                axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=notes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null),
+                axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=DppNotes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null)
+            ]);
+            rawNotes = notesRes?.data?.data || [];
+            rawDpps = dppsRes?.data?.data || [];
+        } catch (e) {
+            console.error("Notes fetch error:", e.message);
+        }
+    }
+    
+    const parseNotes = (items) => {
+        const result = [];
+        for (const item of items) {
+            const hw = item.homeworkIds?.[0];
+            if (hw) {
+                const att = hw.attachmentIds?.[0];
+                if (att) {
+                    const fileKey = att.key;
+                    const url = fileKey ? `${att.baseUrl || "https://static.pw.live/"}${fileKey}` : "";
+                    result.push({
+                        name: hw.topic || att.name,
+                        url: url
+                    });
+                }
+            }
+        }
+        return result;
+    };
+    
+    const notes = parseNotes(rawNotes);
+    const dppNotes = parseNotes(rawDpps);
+    
+    return {
+        videoData: {
+            url: constructedHlsUrl,
+            drmType: "ClearKey",
+            keys: []
+        },
+        pwHeaders: {},
+        notes: notes,
+        dppNotes: dppNotes,
+        topicName: match.topic || "Stream Player",
+        slides: []
+    };
+}
+
 // Get extracted stream and DRM keys for the custom player
 app.get('/api/video-data', async (req, res) => {
     const { token } = req.query;
@@ -268,84 +375,24 @@ app.get('/api/video-data', async (req, res) => {
     }
 
     try {
-        const response = await axios.get(decryptedUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-        });
+        const parsedUrl = new URL(decryptedUrl);
+        const batchId = parsedUrl.searchParams.get('batchId');
+        const subjectId = parsedUrl.searchParams.get('subjectId');
+        const scheduleId = parsedUrl.searchParams.get('scheduleId');
+        const tag = parsedUrl.searchParams.get('tag');
 
-        const html = response.data;
-        const videoDataMatch = html.match(/(?:const|let|var)\s+VIDEO_DATA\s*=\s*({[\s\S]*?});/);
-        const pwHeadersMatch = html.match(/(?:const|let|var)\s+PW_HEADERS\s*=\s*({[\s\S]*?});/);
-        const notesMatch = html.match(/(?:const|let|var)\s+NOTES\s*=\s*([\s\S]*?);/);
-        const dppNotesMatch = html.match(/(?:const|let|var)\s+DPP_NOTES\s*=\s*([\s\S]*?);/);
-        const topicNameMatch = html.match(/(?:const|let|var)\s+TOPIC_NAME\s*=\s*([\s\S]*?);/);
-        const slidesMatch = html.match(/(?:const|let|var)\s+SLIDES\s*=\s*([\s\S]*?);/);
-
-        if (!videoDataMatch) {
-            throw new Error("VIDEO_DATA not found in stream player page.");
+        if (!batchId || !subjectId || !scheduleId) {
+            throw new Error("Missing query parameters in decrypted token URL.");
         }
 
-        let videoData = null;
-        let pwHeaders = null;
-        let notes = [];
-        let dppNotes = [];
-        let topicName = "Video Stream Player";
-        let slides = [];
-
-        const parseJsObject = (matchStr) => {
-            try {
-                return JSON.parse(matchStr);
-            } catch (e) {
-                try {
-                    const cleaned = matchStr
-                        .replace(/([{,]\s*)([a-zA-Z0-9_\-]+)\s*:/g, '$1"$2":')
-                        .replace(/'/g, '"');
-                    return JSON.parse(cleaned);
-                } catch (e2) {
-                    return null;
-                }
-            }
-        };
-
-        videoData = parseJsObject(videoDataMatch[1]);
-
-        if (pwHeadersMatch) {
-            pwHeaders = parseJsObject(pwHeadersMatch[1]);
-        }
-
-        if (notesMatch) {
-            notes = parseJsObject(notesMatch[1]) || [];
-        }
-
-        if (dppNotesMatch) {
-            dppNotes = parseJsObject(dppNotesMatch[1]) || [];
-        }
-
-        if (topicNameMatch) {
-            topicName = topicNameMatch[1].trim().replace(/^['"`]|['"`]$/g, '');
-        }
-
-        if (slidesMatch) {
-            slides = parseJsObject(slidesMatch[1]) || [];
-        }
-
-        if (!videoData || !videoData.url) {
-            throw new Error("Could not parse video url from VIDEO_DATA.");
-        }
-
+        const data = await getPWVideoData(batchId, subjectId, scheduleId, tag);
         res.json({
             success: true,
-            videoData: videoData,
-            pwHeaders: pwHeaders || {},
-            notes: notes,
-            dppNotes: dppNotes,
-            topicName: topicName,
-            slides: slides
+            ...data
         });
 
     } catch (error) {
-        console.error("Video data extraction failed:", error.message);
+        console.error("Video data extraction failed, returning fallback:", error.message);
         res.json({
             success: false,
             message: error.message,

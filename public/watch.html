@@ -305,69 +305,6 @@ let TOPIC_NAME = "Video Stream Player";
 let PW_HEADERS = {};
 let SLIDES = [];
 
-async function fetchDynamicVideoData() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    
-    if (!token) {
-        showError("Access token is missing in URL.");
-        return;
-    }
-    
-    showLoading("Securing Connection...", "Fetching stream metadata");
-    
-    try {
-        const response = await fetch(`/api/video-data?token=${encodeURIComponent(token)}`);
-        const resData = await response.json();
-        
-        if (resData.success && resData.videoData) {
-            VIDEO_DATA = resData.videoData;
-            NOTES = resData.notes || [];
-            DPP_NOTES = resData.dppNotes || [];
-            TOPIC_NAME = resData.topicName || "Video Player";
-            PW_HEADERS = resData.pwHeaders || {};
-            SLIDES = resData.slides || [];
-            
-            // Update document title and header title
-            document.title = TOPIC_NAME + " — RangeXCoder";
-            const titleEl = document.getElementById('player-title');
-            if (titleEl) titleEl.textContent = TOPIC_NAME;
-            
-            // Now start the player
-            try {
-                if (!VIDEO_DATA?.url) throw new Error('Video URL not available.');
-                if (isYT(VIDEO_DATA.url)) document.body.classList.add('yt-mode');
-                initPlayer(VIDEO_DATA);
-                
-                // Rebuild timeline and panels since notes/dpp_notes are now populated
-                if (typeof buildPanelHTML === 'function') {
-                    const pHTML = buildPanelHTML();
-                    document.getElementById('panelInner').innerHTML = pHTML;
-                    document.getElementById('panelInnerMob').innerHTML = pHTML;
-                }
-            } catch (err) {
-                console.error("Failed to initialize player, redirecting to fallback:", err);
-                if (resData.fallbackUrl) {
-                    window.location.href = resData.fallbackUrl;
-                } else {
-                    showError(err.message || 'Failed to initialize player.');
-                }
-            }
-        } else {
-            console.warn("Proxy extraction failed, trying fallback redirect...");
-            if (resData.fallbackUrl) {
-                window.location.href = resData.fallbackUrl;
-            } else {
-                showError(resData.message || "Failed to load secure stream player.");
-            }
-        }
-    } catch (err) {
-        console.error("API call failed, falling back to direct play redirect:", err);
-        // Fallback: Try redirecting directly via play endpoint which does a direct 302 redirect
-        window.location.href = `/api/play?token=${encodeURIComponent(token)}`;
-    }
-}
-
 /* ── UTILS ─────────────────────────────────────── */
 function fmt(s){s=Math.floor(s||0);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?`${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`:`${m}:${String(sc).padStart(2,'0')}`;}
 
@@ -806,6 +743,86 @@ window.addEventListener('beforeunload',()=>{if(shakaInst){try{shakaInst.destroy(
 /* ── BOOT ──────────────────────────────────── */
 showLoading('Initializing…','Starting player');
 showControls();scheduleHide();
+
+async function fetchDynamicVideoData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (!token) {
+        showError("Access token is missing in URL.");
+        return;
+    }
+    
+    showLoading("Securing Connection...", "Fetching stream metadata");
+    
+    let redirected = false;
+    // Fallback: If API call takes longer than 5 seconds, redirect directly to avoid getting stuck
+    const redirectTimeout = setTimeout(() => {
+        if (redirected) return;
+        redirected = true;
+        console.warn("API call timed out after 5s, redirecting to play fallback...");
+        window.location.href = `/api/play?token=${encodeURIComponent(token)}`;
+    }, 5000);
+    
+    try {
+        const response = await fetch(`/api/video-data?token=${encodeURIComponent(token)}`);
+        const resData = await response.json();
+        
+        if (redirected) return;
+        clearTimeout(redirectTimeout);
+        redirected = true;
+        
+        if (resData.success && resData.videoData) {
+            VIDEO_DATA = resData.videoData;
+            NOTES = resData.notes || [];
+            DPP_NOTES = resData.dppNotes || [];
+            TOPIC_NAME = resData.topicName || "Video Player";
+            PW_HEADERS = resData.pwHeaders || {};
+            SLIDES = resData.slides || [];
+            
+            // Update document title and header title
+            document.title = TOPIC_NAME + " — RangeXCoder";
+            const titleEl = document.getElementById('player-title');
+            if (titleEl) titleEl.textContent = TOPIC_NAME;
+            
+            // Now start the player
+            try {
+                if (!VIDEO_DATA?.url) throw new Error('Video URL not available.');
+                if (isYT(VIDEO_DATA.url)) document.body.classList.add('yt-mode');
+                initPlayer(VIDEO_DATA);
+                
+                // Rebuild timeline and panels since notes/dpp_notes are now populated
+                if (typeof buildPanelHTML === 'function') {
+                    const pHTML = buildPanelHTML();
+                    document.getElementById('panelInner').innerHTML = pHTML;
+                    document.getElementById('panelInnerMob').innerHTML = pHTML;
+                }
+            } catch (err) {
+                console.error("Failed to initialize player, redirecting to fallback:", err);
+                if (resData.fallbackUrl) {
+                    window.location.href = resData.fallbackUrl;
+                } else {
+                    showError(err.message || 'Failed to initialize player.');
+                }
+            }
+        } else {
+            console.warn("Proxy extraction failed, trying fallback redirect...");
+            if (resData.fallbackUrl) {
+                window.location.href = resData.fallbackUrl;
+            } else {
+                showError(resData.message || "Failed to load secure stream player.");
+            }
+        }
+    } catch (err) {
+        if (redirected) return;
+        clearTimeout(redirectTimeout);
+        redirected = true;
+        console.error("API call failed, falling back to direct play redirect:", err);
+        // Fallback: Try redirecting directly via play endpoint which does a direct 302 redirect
+        window.location.href = `/api/play?token=${encodeURIComponent(token)}`;
+    }
+}
+
 try {
   fetchDynamicVideoData();
 } catch(err) {

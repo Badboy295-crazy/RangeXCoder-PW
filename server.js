@@ -236,18 +236,9 @@ app.get('/api/play', async (req, res) => {
             res.redirect(finalUrl);
         }
     } catch (error) {
-        console.error("Secure stream proxy error:", error.message);
-        const errorDetails = {
-            message: error.message,
-            status: error.response ? error.response.status : null,
-            headers: error.response ? error.response.headers : null,
-            dataSnippet: error.response && typeof error.response.data === 'string' ? error.response.data.substring(0, 1000) : null
-        };
-        res.status(500).json({
-            success: false,
-            message: "Failed to load secure stream player on server.",
-            error: errorDetails
-        });
+        console.error("Secure stream proxy failed, falling back to direct redirect:", error.message);
+        // Fail-safe fallback: redirect directly to the target URL so it plays anyway
+        res.redirect(decryptedUrl);
     }
 });
 
@@ -263,8 +254,8 @@ app.get('/get-test-solution-video', async (req, res) => {
         });
         res.send(response.data);
     } catch (error) {
-        console.error("Solution video proxy error:", error.message);
-        res.status(500).send("Failed to load quiz solution video.");
+        console.error("Solution video proxy failed, falling back to direct redirect:", error.message);
+        res.redirect(targetUrl);
     }
 });
 

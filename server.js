@@ -207,8 +207,8 @@ app.get('/api/decrypt-token', (req, res) => {
     res.json({ success: true, url: decryptedUrl });
 });
 
-// Decrypt token and perform HTTP 302 redirection to secure stream URL
-app.get('/api/play', (req, res) => {
+// Server-side fetching to proxy content and hide stream.testuk.org domain
+app.get('/api/play', async (req, res) => {
     const { token } = req.query;
     if (!token) {
         return res.status(400).send("Access token is missing.");
@@ -217,7 +217,45 @@ app.get('/api/play', (req, res) => {
     if (!decryptedUrl) {
         return res.status(400).send("Invalid or expired access token.");
     }
-    res.redirect(decryptedUrl);
+
+    try {
+        const response = await axios.get(decryptedUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+
+        const contentType = response.headers['content-type'] || '';
+        const finalUrl = response.request.res.responseUrl;
+
+        if (contentType.includes('text/html')) {
+            // Serve the player/quiz HTML directly from our domain
+            res.send(response.data);
+        } else {
+            // Redirect directly to static files (like PDFs on PW CDN)
+            res.redirect(finalUrl);
+        }
+    } catch (error) {
+        console.error("Secure stream proxy error:", error.message);
+        res.status(500).send("Failed to load secure stream player.");
+    }
+});
+
+// Proxy DPP quiz solution videos to keep them on our domain
+app.get('/get-test-solution-video', async (req, res) => {
+    const queryParams = new URLSearchParams(req.query).toString();
+    const targetUrl = `https://stream.testuk.org/get-test-solution-video?${queryParams}`;
+    try {
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+        res.send(response.data);
+    } catch (error) {
+        console.error("Solution video proxy error:", error.message);
+        res.status(500).send("Failed to load quiz solution video.");
+    }
 });
 
 // Serve HTML routing

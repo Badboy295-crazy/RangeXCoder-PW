@@ -46,12 +46,12 @@ const ADMIN_TOKEN = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest('h
 const OBFUSCATION_KEY = "pwzone_super_secret_key_2026";
 function encryptPayload(data) {
     const jsonStr = JSON.stringify(data);
-    let xored = "";
-    for (let i = 0; i < jsonStr.length; i++) {
-        const charCode = jsonStr.charCodeAt(i) ^ OBFUSCATION_KEY.charCodeAt(i % OBFUSCATION_KEY.length);
-        xored += String.fromCharCode(charCode);
+    const buffer = Buffer.from(jsonStr, 'utf8');
+    const xorKeyBytes = Buffer.from(OBFUSCATION_KEY, 'utf8');
+    for (let i = 0; i < buffer.length; i++) {
+        buffer[i] = buffer[i] ^ xorKeyBytes[i % xorKeyBytes.length];
     }
-    return Buffer.from(xored, 'binary').toString('base64');
+    return buffer.toString('base64');
 }
 
 function sendEncrypted(res, data) {

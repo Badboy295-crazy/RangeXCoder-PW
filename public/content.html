@@ -337,12 +337,16 @@
         function decryptPayload(base64Str) {
             const xorKey = "pwzone_super_secret_key_2026";
             const binaryStr = atob(base64Str);
-            let output = "";
+            const bytes = new Uint8Array(binaryStr.length);
             for (let i = 0; i < binaryStr.length; i++) {
-                const charCode = binaryStr.charCodeAt(i) ^ xorKey.charCodeAt(i % xorKey.length);
-                output += String.fromCharCode(charCode);
+                bytes[i] = binaryStr.charCodeAt(i);
             }
-            return JSON.parse(output);
+            const keyBytes = new TextEncoder().encode(xorKey);
+            for (let i = 0; i < bytes.length; i++) {
+                bytes[i] = bytes[i] ^ keyBytes[i % keyBytes.length];
+            }
+            const jsonStr = new TextDecoder().decode(bytes);
+            return JSON.parse(jsonStr);
         }
 
         const motivationalQuotes = [

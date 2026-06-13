@@ -959,11 +959,15 @@
         const token = urlParams.get('token');
         if (token) {
           isRedirectingFallback = true;
-          window.open('/api/play?token=' + encodeURIComponent(token), '_blank');
-          if (window.history.length > 1) {
-            window.history.back();
+          const pop = window.open('/api/play?token=' + encodeURIComponent(token), '_blank');
+          if (!pop || pop.closed || typeof pop.closed === 'undefined') {
+            window.location.href = '/api/play?token=' + encodeURIComponent(token);
           } else {
-            window.location.href = '/';
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              window.location.href = '/';
+            }
           }
         } else {
           errMsg.textContent = msg;
@@ -1190,11 +1194,15 @@
         }
 
         function triggerSilentFallback(tkn) {
-            window.open('/api/play?token=' + encodeURIComponent(tkn), '_blank');
-            if (window.history.length > 1) {
-                window.history.back();
+            const pop = window.open('/api/play?token=' + encodeURIComponent(tkn), '_blank');
+            if (!pop || pop.closed || typeof pop.closed === 'undefined') {
+                window.location.href = '/api/play?token=' + encodeURIComponent(tkn);
             } else {
-                window.location.href = '/';
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = '/';
+                }
             }
         }
         

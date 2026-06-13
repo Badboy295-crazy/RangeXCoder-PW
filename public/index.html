@@ -650,12 +650,11 @@
         const tabFav = document.getElementById('tabFav');
 
         async function fetchBatches() {
-            updLoader('Loading batches from server...', 70);
+            updLoader('Loading batches...', 70);
             try {
-                const response = await fetch('/api/batches');
+                const response = await fetch('https://rarestudy.github.io/rarestudy/batches.json?v=1781369266137');
                 updLoader('Rendering batch system grids...', 90);
-                const resData = await response.json();
-                const data = decryptPayload(resData.payload);
+                const data = await response.json();
                 const batchesList = data.batches || data || [];
                 if (!Array.isArray(batchesList)) {
                     throw new Error("Batches payload is not a valid array.");
@@ -664,9 +663,24 @@
                 renderSystem();
                 hideLoader();
             } catch (error) {
-                console.error(error);
-                hideLoader();
-                batchesContainer.innerHTML = `<div class="status-msg" style="color: #ff5e5e;"><i class="fas fa-exclamation-triangle"></i> Failed to connect to local Proxy.</div>`;
+                console.warn("Direct CDN fetch failed, falling back to local proxy:", error);
+                try {
+                    updLoader('Connecting to server proxy...', 80);
+                    const response = await fetch('/api/batches');
+                    const resData = await response.json();
+                    const data = decryptPayload(resData.payload);
+                    const batchesList = data.batches || data || [];
+                    if (!Array.isArray(batchesList)) {
+                        throw new Error("Batches payload is not a valid array.");
+                    }
+                    allBatches = batchesList;
+                    renderSystem();
+                    hideLoader();
+                } catch (retryError) {
+                    console.error("Local proxy fallback failed:", retryError);
+                    hideLoader();
+                    batchesContainer.innerHTML = `<div class="status-msg" style="color: #ff5e5e;"><i class="fas fa-exclamation-triangle"></i> Failed to connect to local Proxy.</div>`;
+                }
             }
         }
 

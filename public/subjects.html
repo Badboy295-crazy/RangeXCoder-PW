@@ -36,7 +36,7 @@
             --glass-card-bg: rgba(21, 24, 51, 0.45);
         }
 
-        /* 12 Professionally Designed Themes */
+        /* 12 Themes styling */
         .theme-classic { --accent-purple: #5c5be5; --accent-hover: #4a49c6; --glow-1: rgba(92, 91, 229, 0.15); --glow-2: rgba(0, 242, 254, 0.15); }
         .theme-teal { --accent-purple: #00f2fe; --accent-hover: #00c6ff; --glow-1: rgba(0, 242, 254, 0.15); --glow-2: rgba(92, 91, 229, 0.15); }
         .theme-orange { --accent-purple: #ff7b00; --accent-hover: #e06c00; --glow-1: rgba(255, 123, 0, 0.15); --glow-2: rgba(255, 0, 128, 0.15); }
@@ -108,7 +108,7 @@
 
         .workspace-wrapper { max-width: 1240px; margin: 25px auto; padding: 0 20px; transition: opacity 0.3s; }
         
-        /* Today's Class Card Styles */
+        /* Today's Schedule Card Styles */
         .todays-class-section { 
             background: rgba(var(--bg-glass-rgb), 0.3);
             backdrop-filter: blur(10px);
@@ -126,29 +126,41 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(var(--border-glass-rgb), 0.15); 
             border-radius: 16px; 
-            min-width: 280px; 
-            max-width: 280px; 
+            min-width: 290px; 
+            max-width: 290px; 
             overflow: hidden; 
             display: flex; 
             flex-direction: column; 
             box-shadow: var(--shadow);
             transition: all 0.3s;
         }
-        .lecture-card:hover { transform: translateY(-4px); border-color: rgba(var(--border-glass-rgb), 0.3); }
+        .lecture-card.clickable {
+            cursor: pointer;
+        }
+        .lecture-card.clickable:hover { transform: translateY(-4px); border-color: rgba(var(--border-glass-rgb), 0.35); }
+        
         .lecture-thumbnail-area { width: 100%; height: 150px; background: radial-gradient(circle, rgba(var(--border-glass-rgb), 0.2) 0%, rgba(0,0,0,0.4) 100%); position: relative; display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
         .teacher-avatar-img { height: 135px; object-fit: contain; z-index: 2; }
         .teacher-name-tag { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.7); color: white; text-align: center; font-size: 12px; font-weight: 700; padding: 6px 0; z-index: 3; backdrop-filter: blur(4px); }
 
         .lecture-meta-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
         .badge-flex-row { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Live Badge Animation */
         .status-badge { background: linear-gradient(135deg, var(--accent-purple), var(--accent-hover)); color: #ffffff; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-badge.live { background: linear-gradient(135deg, #ff3366, #ff0055); animation: livePulse 2s infinite; }
+        @keyframes livePulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 51, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0); }
+        }
+
         .time-counter-row { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
         .time-counter-row i { color: var(--accent-purple); }
         
         .lecture-main-topic-text { font-size: 14px; font-weight: 700; line-height: 1.4; color: var(--text-white); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .lecture-sub-desc-text { font-size: 12px; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: auto; }
 
-        /* Workspace Tab Styles */
         .workspace-navigation-tabs { 
             display: flex; 
             background: var(--glass-card-bg);
@@ -194,11 +206,7 @@
             box-shadow: var(--shadow);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s; 
         }
-        .subject-row-item-div:hover { 
-            transform: translateY(-3px); 
-            border-color: var(--accent-purple); 
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
+        .subject-row-item-div:hover { transform: translateY(-3px); border-color: var(--accent-purple); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
         
         .subject-left-composite { display: flex; align-items: center; gap: 18px; }
         .subject-vector-avatar-frame { 
@@ -222,7 +230,7 @@
         .subject-row-item-div:hover .subject-right-chevron-arrow i { color: var(--accent-purple); transform: translateX(3px); }
         .status-msg { text-align: center; padding: 40px; color: var(--text-muted); font-size: 15px; }
 
-        /* Premium Loading Screen Overlay */
+        /* Premium Loading Overlay */
         .page-loader-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: var(--bg-main); transition: opacity 0.5s ease, visibility 0.5s ease; }
         .page-loader-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .loader-card { background: rgba(var(--bg-glass-rgb), 0.6); border: 1px solid rgba(var(--border-glass-rgb), 0.25); border-radius: 24px; padding: 40px 32px; width: min(380px, 90%); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
@@ -240,12 +248,17 @@
         .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-top: 20px; }
         .settings-card { background: var(--glass-card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 20px; border: 1px solid rgba(var(--border-glass-rgb), 0.15); padding: 24px; box-shadow: var(--shadow); }
         .settings-card-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; color: var(--accent-purple); }
+        
+        .glass-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(var(--border-glass-rgb), 0.2); border-radius: 10px; padding: 10px 14px; color: var(--text-white); font-size: 14px; outline: none; margin-top: 5px; }
+        .glass-input:focus { border-color: var(--accent-purple); }
+
         .theme-selector-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .theme-option-btn { aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; position: relative; transition: transform 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; }
         .theme-option-btn:hover { transform: scale(1.1); }
         .theme-option-btn.active { border-color: var(--text-white); }
         .theme-option-btn i { font-size: 12px; color: white; display: none; }
         .theme-option-btn.active i { display: block; }
+        
         .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid rgba(var(--border-glass-rgb), 0.1); }
         .settings-row:last-child { border-bottom: none; }
         .settings-info { display: flex; flex-direction: column; gap: 4px; }
@@ -259,7 +272,7 @@
         input:checked + .slider { background-color: var(--accent-purple); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        /* Instagram-style Bottom Navigation Bar */
+        /* Bottom Navigation Bar */
         .bottom-nav {
             position: fixed;
             bottom: 20px;
@@ -335,6 +348,21 @@
         </div>
 
         <div class="settings-grid">
+            <!-- Profile Details -->
+            <div class="settings-card">
+                <div class="settings-card-title">
+                    <i class="fas fa-user-circle"></i> Student Profile
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Display Name:</label>
+                    <input type="text" id="profileNameInput" class="glass-input" placeholder="Enter your name">
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Class / Batch Target:</label>
+                    <input type="text" id="profileClassInput" class="glass-input" placeholder="e.g. JEE 2027 Aspirant">
+                </div>
+            </div>
+
             <div class="settings-card">
                 <div class="settings-card-title"><i class="fas fa-palette"></i> Theme Customization</div>
                 <div class="settings-row">
@@ -378,35 +406,11 @@
                 </div>
                 <div class="settings-row">
                     <div class="settings-info">
-                        <div class="settings-label">High Intensity Glassmorphism</div>
-                        <div class="settings-desc">Increase backing blur filter density</div>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="glassSwitch" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="settings-card">
-                <div class="settings-card-title"><i class="fas fa-volume-up"></i> Notification & Sound</div>
-                <div class="settings-row">
-                    <div class="settings-info">
-                        <div class="settings-label">Audio Sound Effects</div>
+                        <div class="settings-label">Audio sound effects</div>
                         <div class="settings-desc">Play feedback sound on interaction</div>
                     </div>
                     <label class="switch">
                         <input type="checkbox" id="soundSwitch">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="settings-row">
-                    <div class="settings-info">
-                        <div class="settings-label">Motivational Popups</div>
-                        <div class="settings-desc">Show micro-tips during loading phases</div>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="tipsSwitch" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -459,10 +463,10 @@
             if(f)f.style.width='100%';
             if(p)p.textContent='100%';
             clearInterval(_lTmr);
-            setTimeout(()=>{
-                const l=document.getElementById('pageLoader');
-                if(l)l.classList.add('hidden');
-            },400);
+            setTimeout(() => {
+                const l = document.getElementById('pageLoader');
+                if (l) l.classList.add('hidden');
+            }, 400);
         }
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -555,11 +559,19 @@
                 section.style.display = 'block';
                 rowContainer.innerHTML = '';
 
-                resData.data.forEach(sched => {
-                    const teacher = (sched.teacherProfiles && sched.teacherProfiles[0]) ? sched.teacherProfiles[0] : { name: "Batch Faculty", imageId: null };
+                resData.data.forEach(item => {
+                    const sched = item.data || item;
+                    const teacher = (sched.teachers && sched.teachers[0]) ? { name: "Batch Faculty", imageId: null } : { name: "Batch Faculty", imageId: null };
+                    
                     let avatarUrl = "https://static.pw.live/5eb393ee95fab7468a79d189/ADMIN/a8a8837e-fa4d-4355-bbd5-214512154c23.png"; 
-                    if (teacher.imageId && teacher.imageId.baseUrl && teacher.imageId.key) {
-                        avatarUrl = `${teacher.imageId.baseUrl}${teacher.imageId.key}`;
+
+                    // Support teacher profile images if fetched in sched
+                    if (sched.teacherProfiles && sched.teacherProfiles[0]) {
+                        const prof = sched.teacherProfiles[0];
+                        if (prof.imageId && prof.imageId.baseUrl && prof.imageId.key) {
+                            avatarUrl = `${prof.imageId.baseUrl}${prof.imageId.key}`;
+                        }
+                        teacher.name = prof.name || teacher.name;
                     }
 
                     let timeDisplay = "04:00 PM";
@@ -570,18 +582,62 @@
                     const topicText = sched.topic || 'Live Session';
                     const splitPos = topicText.indexOf(' : ');
                     const titleHeading = splitPos !== -1 ? topicText.substring(0, splitPos) : topicText;
-                    const titleSubtext = splitPos !== -1 ? topicText.substring(splitPos + 3) : 'Syllabus progression details update.';
+                    const titleSubtext = splitPos !== -1 ? topicText.substring(splitPos + 3) : 'Live lecture discussion.';
+
+                    // Check live status
+                    const isLive = (sched.lectureType === 'LIVE' && sched.status === 'LIVE') || sched.tag === 'Live';
+                    const isCompleted = sched.status === 'COMPLETED' || sched.tag === 'Ended';
+                    const isDppQuiz = item.type === 'DPP_QUIZ' || (sched.dppData && sched.dppData.dppId);
 
                     const card = document.createElement('div');
-                    card.className = 'lecture-card';
+                    card.id = `sched-card-${sched._id}`;
+
+                    let tagBgColor = '#0084ff';
+                    let tagTextLabel = sched.tag || 'Scheduled';
+                    
+                    if (isLive) {
+                        tagBgColor = '#ff3366';
+                        tagTextLabel = 'LIVE NOW';
+                    } else if (isCompleted) {
+                        tagBgColor = '#32cd32';
+                        tagTextLabel = 'Recorded';
+                    } else if (isDppQuiz) {
+                        tagBgColor = '#f97316';
+                        tagTextLabel = 'DPP QUIZ';
+                    }
+
+                    let clickFnStr = '';
+                    let isClickable = false;
+
+                    if (isLive) {
+                        isClickable = true;
+                        clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
+                    } else if (isCompleted && sched.videoDetails && (sched.videoDetails._id || sched.videoDetails.id)) {
+                        isClickable = true;
+                        clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
+                    } else if (isDppQuiz && sched.dppData && (sched.dppData.dppId || sched.dppData._id)) {
+                        isClickable = true;
+                        clickFnStr = `launchDppQuiz('${sched._id}', '${sched.dppData.dppId || sched.dppData._id}')`;
+                    }
+
+                    card.className = `lecture-card ${isClickable ? 'clickable' : ''}`;
+                    if (isClickable) {
+                        card.setAttribute('onclick', clickFnStr);
+                    }
+
+                    let previewUrl = avatarUrl;
+                    if (sched.videoDetails && sched.videoDetails.image) {
+                        previewUrl = sched.videoDetails.image;
+                    }
+
                     card.innerHTML = `
                         <div class="lecture-thumbnail-area">
-                            <img src="${avatarUrl}" alt="${teacher.name}" class="teacher-avatar-img" onerror="this.src='https://via.placeholder.com/150/151833/ffffff?text=Faculty';">
+                            <img src="${previewUrl}" alt="${teacher.name}" class="teacher-avatar-img" onerror="this.src='https://via.placeholder.com/150/151833/ffffff?text=Faculty';">
                             <div class="teacher-name-tag">${teacher.name}</div>
                         </div>
                         <div class="lecture-meta-body">
                             <div class="badge-flex-row">
-                                <div class="status-badge" style="background-color: ${sched.tag === 'Upcoming' ? '#0084ff' : '#ff3366'}">${sched.tag || 'Upcoming'}</div>
+                                <div class="status-badge ${isLive ? 'live' : ''}" style="background: ${tagBgColor}">${tagTextLabel}</div>
                                 <div class="time-counter-row"><i class="far fa-clock"></i> <span>${timeDisplay}</span></div>
                             </div>
                             <div class="lecture-main-topic-text" title="${titleHeading}">${titleHeading}</div>
@@ -593,6 +649,36 @@
             } catch (err) {
                 console.error(err);
                 section.style.display = 'none';
+            }
+        }
+
+        async function launchLiveSchedulePlayer(scheduleId, subjectId, chapterId) {
+            playFeedbackSound();
+            try {
+                const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${subjectId}&scheduleId=${scheduleId}&tag=${chapterId}`);
+                const resData = await response.json();
+                if (resData.success && resData.token) {
+                    window.open(`/watch?token=${encodeURIComponent(resData.token)}`, '_blank');
+                } else {
+                    alert("Unable to fetch live video stream token.");
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function launchDppQuiz(scheduleId, testId) {
+            playFeedbackSound();
+            try {
+                const response = await fetch(`/api/get-token?type=dpp-quiz&batchId=${BATCH_ID}&scheduleId=${scheduleId}&testId=${testId}&tag=Start`);
+                const resData = await response.json();
+                if (resData.success && resData.token) {
+                    window.open(`/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
+                } else {
+                    alert("Unable to load DPP quiz token.");
+                }
+            } catch (e) {
+                console.error(e);
             }
         }
 
@@ -640,12 +726,24 @@
             setTimeout(() => { settingsView.style.opacity = 1; }, 50);
         });
 
-        // Theme controls
+        // Profile details config
+        const profileNameInput = document.getElementById('profileNameInput');
+        const profileClassInput = document.getElementById('profileClassInput');
+
+        profileNameInput.value = localStorage.getItem('pwzone_user_name') || 'Anonymous';
+        profileClassInput.value = localStorage.getItem('pwzone_user_class') || 'JEE Aspirant';
+
+        profileNameInput.addEventListener('input', (e) => {
+            localStorage.setItem('pwzone_user_name', e.target.value.trim() || 'Anonymous');
+        });
+        profileClassInput.addEventListener('input', (e) => {
+            localStorage.setItem('pwzone_user_class', e.target.value.trim() || 'JEE Aspirant');
+        });
+
+        // Theme and Preference Control
         const nightModeSwitch = document.getElementById('nightModeSwitch');
         const animationsSwitch = document.getElementById('animationsSwitch');
-        const glassSwitch = document.getElementById('glassSwitch');
         const soundSwitch = document.getElementById('soundSwitch');
-        const tipsSwitch = document.getElementById('tipsSwitch');
 
         const initMode = localStorage.getItem('pwzone_theme') || 'night';
         nightModeSwitch.checked = (initMode === 'night');
@@ -658,9 +756,7 @@
         });
 
         animationsSwitch.checked = (localStorage.getItem('pwzone_animations') !== 'false');
-        glassSwitch.checked = (localStorage.getItem('pwzone_glass') !== 'false');
         soundSwitch.checked = (localStorage.getItem('pwzone_sound') === 'true');
-        tipsSwitch.checked = (localStorage.getItem('pwzone_tips') !== 'false');
 
         nightModeSwitch.addEventListener('change', (e) => {
             const mode = e.target.checked ? 'night' : 'day';
@@ -674,18 +770,8 @@
             playFeedbackSound();
         });
 
-        glassSwitch.addEventListener('change', (e) => {
-            localStorage.setItem('pwzone_glass', e.target.checked);
-            playFeedbackSound();
-        });
-
         soundSwitch.addEventListener('change', (e) => {
             localStorage.setItem('pwzone_sound', e.target.checked);
-            playFeedbackSound();
-        });
-
-        tipsSwitch.addEventListener('change', (e) => {
-            localStorage.setItem('pwzone_tips', e.target.checked);
             playFeedbackSound();
         });
 

@@ -1029,25 +1029,39 @@ async function fetchDynamicVideoData() {
     let stageIdx = 0;
     let currentPct = 5;
     let targetPct = 15;
+    let progressSpeed = 0.05;
+    let isFinished = false;
     
     showLoading(stages[0][0], stages[0][1]);
     
-    // Progress bar updater
+    // Smooth organic progress bar updater
     const progressTimer = setInterval(function() {
-        if (currentPct < targetPct) {
-            currentPct++;
-            const fill = document.getElementById('ovLoadBarFill');
-            const txt = document.getElementById('ovLoadPercent');
-            if (fill) fill.style.width = currentPct + '%';
-            if (txt) txt.textContent = currentPct + '%';
+        if (isFinished) {
+            currentPct += (100 - currentPct) * 0.25;
+            if (100 - currentPct < 0.1) {
+                currentPct = 100;
+                clearInterval(progressTimer);
+            }
+        } else {
+            const diff = targetPct - currentPct;
+            currentPct += diff * progressSpeed;
+            if (progressSpeed > 0.005) {
+                progressSpeed -= 0.0002;
+            }
         }
-    }, 30);
+        const fill = document.getElementById('ovLoadBarFill');
+        const txt = document.getElementById('ovLoadPercent');
+        if (fill) fill.style.width = Math.min(100, currentPct).toFixed(1) + '%';
+        if (txt) txt.textContent = Math.min(100, Math.round(currentPct)) + '%';
+    }, 50);
     
     const stageTimer = setInterval(function() {
         stageIdx++;
         if (stageIdx < stages.length) {
             showLoading(stages[stageIdx][0], stages[stageIdx][1]);
             targetPct = stages[stageIdx][2];
+        } else {
+            clearInterval(stageTimer);
         }
     }, 900);
     
@@ -1073,46 +1087,61 @@ async function fetchDynamicVideoData() {
         const resData = await response.json();
         
         if (redirected) return;
-        clearTimeout(redirectTimeout);
-        clearInterval(stageTimer);
-        clearInterval(progressTimer);
-        redirected = true;
         
         if (resData.success && resData.videoData) {
-            const fill = document.getElementById('ovLoadBarFill');
-            const txt = document.getElementById('ovLoadPercent');
-            if (fill) fill.style.width = '100%';
-            if (txt) txt.textContent = '100%';
+            isFinished = true;
+            clearTimeout(redirectTimeout);
+            clearInterval(stageTimer);
             
-            VIDEO_DATA = resData.videoData;
-            NOTES = resData.notes || [];
-            DPP_NOTES = resData.dppNotes || [];
-            TOPIC_NAME = resData.topicName || "Video Player";
-            PW_HEADERS = resData.pwHeaders || {};
-            SLIDES = resData.slides || [];
-            
-            // Update document title and header title
-            document.title = TOPIC_NAME + " \u2014 RangeXCoder";
-            const titleEl = document.getElementById('player-title');
-            if (titleEl) titleEl.textContent = TOPIC_NAME;
-            
-            // Now start the player
-            try {
-                if (!VIDEO_DATA?.url) throw new Error('Video URL not available.');
-                if (isYT(VIDEO_DATA.url)) document.body.classList.add('yt-mode');
-                initPlayer(VIDEO_DATA);
-                
-                // Rebuild timeline and panels since notes/dpp_notes are now populated
-                if (typeof buildPanelHTML === 'function') {
-                    const pHTML = buildPanelHTML();
-                    document.getElementById('panelInner').innerHTML = pHTML;
-                    document.getElementById('panelInnerMob').innerHTML = pHTML;
+            // Wait for progress bar to hit 100% smoothly before proceeding
+            const hideInterval = setInterval(function() {
+                if (currentPct >= 99.5) {
+                    clearInterval(hideInterval);
+                    
+                    // Hide loader overlay smoothly
+                    const ov = document.getElementById('ovLoad');
+                    if (ov) {
+                        ov.style.opacity = '0';
+                        setTimeout(function() {
+                            ov.style.display = 'none';
+                        }, 300);
+                    }
+                    
+                    VIDEO_DATA = resData.videoData;
+                    NOTES = resData.notes || [];
+                    DPP_NOTES = resData.dppNotes || [];
+                    TOPIC_NAME = resData.topicName || "Video Player";
+                    PW_HEADERS = resData.pwHeaders || {};
+                    SLIDES = resData.slides || [];
+                    
+                    // Update document title and header title
+                    document.title = TOPIC_NAME + " \u2014 RangeXCoder";
+                    const titleEl = document.getElementById('player-title');
+                    if (titleEl) titleEl.textContent = TOPIC_NAME;
+                    
+                    // Now start the player
+                    try {
+                        if (!VIDEO_DATA?.url) throw new Error('Video URL not available.');
+                        if (isYT(VIDEO_DATA.url)) document.body.classList.add('yt-mode');
+                        initPlayer(VIDEO_DATA);
+                        
+                        // Rebuild timeline and panels since notes/dpp_notes are now populated
+                        if (typeof buildPanelHTML === 'function') {
+                            const pHTML = buildPanelHTML();
+                            document.getElementById('panelInner').innerHTML = pHTML;
+                            document.getElementById('panelInnerMob').innerHTML = pHTML;
+                        }
+                    } catch (err) {
+                        console.error("Failed to initialize player, redirecting:", err);
+                        window.location.href = '/api/go?token=' + encodeURIComponent(token);
+                    }
                 }
-            } catch (err) {
-                console.error("Failed to initialize player, redirecting:", err);
-                window.location.href = '/api/go?token=' + encodeURIComponent(token);
-            }
+            }, 30);
         } else {
+            clearTimeout(redirectTimeout);
+            clearInterval(stageTimer);
+            clearInterval(progressTimer);
+            redirected = true;
             console.warn("Proxy extraction failed, redirecting...");
             window.location.href = '/api/go?token=' + encodeURIComponent(token);
         }
@@ -1132,6 +1161,7 @@ try {
 } catch(err) {
   showError(err.message || 'Video not available.');
 }
+
 
     })();
   </script>

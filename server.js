@@ -3,9 +3,14 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
+const http = require('http');
+const WebSocket = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
 app.use(cors());
 app.use(express.json());
@@ -27,7 +32,50 @@ const COOKIE_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 };
 
-// Fetch all batches - Updated to new dynamic link
+// ================= COMMUNITY DATABASE & CONFIGURATION =================
+const POSTS_FILE = path.join(__dirname, 'posts.json');
+const ADMIN_PASSWORD = "pwzoneadmin123";
+const ADMIN_TOKEN = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest('hex');
+
+function getPosts() {
+    try {
+        if (!fs.existsSync(POSTS_FILE)) {
+            fs.writeFileSync(POSTS_FILE, '[]', 'utf8');
+        }
+        const data = fs.readFileSync(POSTS_FILE, 'utf8');
+        return JSON.parse(data || '[]');
+    } catch (e) {
+        console.error("Error reading posts:", e);
+        return [];
+    }
+}
+
+function savePosts(posts) {
+    try {
+        fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 4), 'utf8');
+    } catch (e) {
+        console.error("Error writing posts:", e);
+    }
+}
+
+function broadcast(event) {
+    const payload = JSON.stringify(event);
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(payload);
+        }
+    });
+}
+
+// WebSocket Connection
+wss.on('connection', (ws) => {
+    console.log('Client connected to WebSockets community Lounge.');
+    ws.send(JSON.stringify({ type: 'welcome', message: 'Connected to PW Zone Lounge' }));
+});
+
+// ================= EXISTING LOGIC & APIS =================
+
+// Fetch all batches
 app.get('/api/batches', async (req, res) => {
     try {
         const response = await axios.get("https://rarestudy.github.io/rarestudy/batches.json?v=1781102563428", { timeout: 5000 });
@@ -54,7 +102,8 @@ app.get('/api/batch-details', async (req, res) => {
 app.get('/api/todays-schedule', async (req, res) => {
     const { batchId } = req.query;
     try {
-        const response = await axios.get(`https://api.penpencil.co/v1/batches/${batchId}/todays-schedule`, { headers: HEADERS });
+        // Redirecting to Penpencil API for dynamic schedule
+        const response = await axios.get(`https://api.penpencil.co/v2/batches/${batchId}/todays-schedule`, { headers: HEADERS });
         res.json(response.data);
     } catch (error) {
         console.error("Fetch todays schedule error:", error.message);
@@ -101,9 +150,7 @@ app.get('/api/dpp-tests', async (req, res) => {
     }
 });
 
-
-
-// Get Video URL (fallback or legacy)
+// Get Video URL (legacy)
 app.get('/api/get-video-url', async (req, res) => {
     const { batchId, subjectId, childId } = req.query;
     try {
@@ -141,8 +188,8 @@ app.get('/api/comments', async (req, res) => {
 });
 
 // ================= AES-256-CBC ENCRYPTION/DECRYPTION SYSTEM =================
-const SECRET_KEY = "rangexcoder_secret_key_fixed_32b"; // Exactly 32 characters
-const IV_LENGTH = 16; // AES block size
+const SECRET_KEY = "rangexcoder_secret_key_fixed_32b"; 
+const IV_LENGTH = 16; 
 
 function encrypt(text) {
     let iv = crypto.randomBytes(IV_LENGTH);
@@ -207,7 +254,7 @@ app.get('/api/decrypt-token', (req, res) => {
     res.json({ success: true, url: decryptedUrl });
 });
 
-// Instant redirect - decrypts and immediately 302 redirects, no external fetch
+// Instant redirect
 app.get('/api/go', (req, res) => {
     const { token } = req.query;
     if (!token) {
@@ -217,11 +264,10 @@ app.get('/api/go', (req, res) => {
     if (!decryptedUrl) {
         return res.status(400).send("Invalid or expired access token.");
     }
-    // Instant redirect, no server-side fetch or proxy attempt
     res.redirect(decryptedUrl);
 });
 
-// Server-side fetching to proxy content and hide stream.testuk.org domain
+// Server-side fetching to proxy content and hide domain
 app.get('/api/play', async (req, res) => {
     const { token } = req.query;
     if (!token) {
@@ -243,15 +289,12 @@ app.get('/api/play', async (req, res) => {
         const finalUrl = response.request.res.responseUrl;
 
         if (contentType.includes('text/html')) {
-            // Serve the player/quiz HTML directly from our domain
             res.send(response.data);
         } else {
-            // Redirect directly to static files (like PDFs on PW CDN)
             res.redirect(finalUrl);
         }
     } catch (error) {
         console.error("Secure stream proxy failed, falling back to direct redirect:", error.message);
-        // Fail-safe fallback: redirect directly to the target URL so it plays anyway
         res.redirect(decryptedUrl);
     }
 });
@@ -266,7 +309,7 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     }
     
     if (!match) {
-        // Fallback: parallel search over all topics
+        // Fallback search
         const topicsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/topics?page=1`;
         const topicsRes = await axios.get(topicsUrl, { headers: HEADERS, timeout: 5000 });
         const topics = topicsRes.data?.data || [];
@@ -312,7 +355,6 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     } catch (e) {
         console.error("Parallel details and notes fetch error:", e.message);
         if (!videoRes) {
-            // Rethrow or retry once if videoRes failed
             videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
         }
     }
@@ -366,7 +408,7 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     };
 }
 
-// Get extracted stream and DRM keys for the custom player
+// Get extracted stream data
 app.get('/api/video-data', async (req, res) => {
     const { token } = req.query;
     if (!token) {
@@ -404,7 +446,7 @@ app.get('/api/video-data', async (req, res) => {
     }
 });
 
-// Proxy DPP quiz solution videos to keep them on our domain
+// Proxy Solution videos
 app.get('/get-test-solution-video', async (req, res) => {
     const queryParams = new URLSearchParams(req.query).toString();
     const targetUrl = `https://stream.testuk.org/get-test-solution-video?${queryParams}`;
@@ -421,15 +463,129 @@ app.get('/get-test-solution-video', async (req, res) => {
     }
 });
 
+// ================= COMMUNITY ROUTERS =================
+
+// GET posts
+app.get('/api/posts', (req, res) => {
+    res.json({ success: true, posts: getPosts() });
+});
+
+// POST post
+app.post('/api/posts', (req, res) => {
+    const { name, userClass, content, imageLink } = req.body;
+    if (!name || !content) {
+        return res.status(400).json({ success: false, message: "Name and content are required." });
+    }
+    const posts = getPosts();
+    const newPost = {
+        id: crypto.randomUUID(),
+        name: name,
+        class: userClass || 'General',
+        content: content,
+        imageLink: imageLink || '',
+        timestamp: new Date().toISOString(),
+        likes: 0,
+        likedBy: [],
+        comments: []
+    };
+    posts.unshift(newPost);
+    savePosts(posts);
+    
+    broadcast({ type: 'new_post', data: newPost });
+    res.json({ success: true, post: newPost });
+});
+
+// POST like toggler
+app.post('/api/posts/like', (req, res) => {
+    const { postId, clientId } = req.body;
+    if (!postId || !clientId) {
+        return res.status(400).json({ success: false, message: "postId and clientId are required." });
+    }
+    const posts = getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) {
+        return res.status(404).json({ success: false, message: "Post not found." });
+    }
+    
+    if (!post.likedBy) post.likedBy = [];
+    const idx = post.likedBy.indexOf(clientId);
+    if (idx === -1) {
+        post.likedBy.push(clientId);
+    } else {
+        post.likedBy.splice(idx, 1);
+    }
+    post.likes = post.likedBy.length;
+    savePosts(posts);
+    
+    broadcast({ type: 'like_update', data: { postId: post.id, likes: post.likes, likedBy: post.likedBy } });
+    res.json({ success: true, likes: post.likes, likedBy: post.likedBy });
+});
+
+// POST comment
+app.post('/api/posts/comment', (req, res) => {
+    const { postId, name, userClass, content } = req.body;
+    if (!postId || !name || !content) {
+        return res.status(400).json({ success: false, message: "postId, name and content are required." });
+    }
+    const posts = getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) {
+        return res.status(404).json({ success: false, message: "Post not found." });
+    }
+    
+    const comment = {
+        id: crypto.randomUUID(),
+        name: name,
+        class: userClass || 'General',
+        content: content,
+        timestamp: new Date().toISOString()
+    };
+    
+    if (!post.comments) post.comments = [];
+    post.comments.push(comment);
+    savePosts(posts);
+    
+    broadcast({ type: 'new_comment', data: { postId: post.id, comment: comment } });
+    res.json({ success: true, comment: comment });
+});
+
+// POST admin auth check
+app.post('/api/admin/auth', (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+        res.json({ success: true, token: ADMIN_TOKEN });
+    } else {
+        res.status(401).json({ success: false, message: "Invalid administrator password." });
+    }
+});
+
+// POST admin delete post
+app.post('/api/admin/delete-post', (req, res) => {
+    const { postId, token } = req.body;
+    if (token !== ADMIN_TOKEN) {
+        return res.status(403).json({ success: false, message: "Unauthorized access." });
+    }
+    let posts = getPosts();
+    const exists = posts.some(p => p.id === postId);
+    if (!exists) {
+        return res.status(404).json({ success: false, message: "Post not found." });
+    }
+    posts = posts.filter(p => p.id !== postId);
+    savePosts(posts);
+    
+    broadcast({ type: 'delete_post', data: { postId } });
+    res.json({ success: true });
+});
+
 // Serve HTML routing
 app.get('/subjects', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'subjects.html')); });
 app.get('/content', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'content.html')); });
 app.get('/stream', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'stream.html')); });
 app.get('/watch', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'watch.html')); });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`===================================================`);
-    console.log(`   RangeXCoder System Engine Active & Fully Fixed!`);
+    console.log(`   PW Zone Engine Active with Real-Time Lounge!`);
     console.log(`   URL: http://localhost:${PORT}`);
     console.log(`===================================================`);
 });

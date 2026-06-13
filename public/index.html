@@ -251,9 +251,9 @@
         .loader-fill { height: 100%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-hover)); width: 0%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
         .loader-pct { font-size: 14px; font-weight: 700; color: var(--accent-purple); }
 
-        /* Settings and Lounge Views */
-        #settingsView, #loungeView { display: none; opacity: 0; transition: opacity 0.3s ease; }
-        #settingsView.active, #loungeView.active { display: block; opacity: 1; }
+        /* Settings and Community Views */
+        #settingsView, #communityView { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        #settingsView.active, #communityView.active { display: block; opacity: 1; }
         
         .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-top: 20px; }
         .settings-card { background: var(--glass-card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 20px; border: 1px solid rgba(var(--border-glass-rgb), 0.15); padding: 24px; box-shadow: var(--shadow); }
@@ -282,9 +282,9 @@
         input:checked + .slider { background-color: var(--accent-purple); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        /* Lounge Styles */
-        .lounge-wrapper { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-        .lounge-composer { background: var(--glass-card-bg); border: 1px solid rgba(var(--border-glass-rgb), 0.2); border-radius: 20px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+        /* Community Styles */
+        .community-wrapper { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .community-composer { background: var(--glass-card-bg); border: 1px solid rgba(var(--border-glass-rgb), 0.2); border-radius: 20px; padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
         .composer-textarea { width: 100%; min-height: 80px; background: rgba(0,0,0,0.2); border: 1px solid rgba(var(--border-glass-rgb), 0.15); border-radius: 12px; padding: 14px; color: var(--text-white); font-size: 15px; outline: none; resize: none; }
         .composer-textarea:focus { border-color: var(--accent-purple); }
         .composer-actions { display: flex; gap: 10px; justify-content: space-between; align-items: center; }
@@ -310,16 +310,21 @@
         .post-delete-btn { position: absolute; top: 20px; right: 20px; color: #ff5e5e; cursor: pointer; font-size: 14px; opacity: 0.7; transition: opacity 0.2s; }
         .post-delete-btn:hover { opacity: 1; }
 
-        /* Comments Lounge Section */
-        .comments-section { background: rgba(0,0,0,0.1); border-radius: 12px; padding: 12px; margin-top: 14px; display: none; flex-direction: column; gap: 10px; }
+        /* Comments Community Section - Enhanced glassmorphic styles */
+        .comments-section { background: rgba(var(--bg-glass-rgb), 0.35); border: 1px solid rgba(var(--border-glass-rgb), 0.12); border-radius: 16px; padding: 16px; margin-top: 14px; display: none; flex-direction: column; gap: 12px; }
         .comments-section.visible { display: flex; }
-        .comment-item { display: flex; gap: 10px; font-size: 13px; line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 8px; }
-        .comment-item:last-child { border-bottom: none; padding-bottom: 0; }
-        .comment-author { font-weight: 700; color: var(--accent-purple); }
-        .comment-text { color: var(--text-white); }
+        .comment-item { display: flex; flex-direction: column; gap: 6px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+        [data-theme="day"] .comment-item { background: rgba(0, 0, 0, 0.04); border: 1px solid rgba(0, 0, 0, 0.07); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02); }
+        .comment-item:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.18); transform: translateY(-1px); }
+        [data-theme="day"] .comment-item:hover { background: rgba(0, 0, 0, 0.06); border-color: rgba(0, 0, 0, 0.1); }
+        .comment-author { font-weight: 700; color: var(--accent-purple); font-size: 13px; }
+        .comment-text { color: var(--text-white); font-size: 13.5px; word-break: break-word; line-height: 1.45; }
         .comment-composer { display: flex; gap: 10px; margin-top: 6px; }
-        .comment-input { flex: 1; background: rgba(0,0,0,0.15); border: 1px solid rgba(var(--border-glass-rgb), 0.15); border-radius: 8px; padding: 6px 12px; color: var(--text-white); font-size: 13px; outline: none; }
-        .comment-send-btn { background: var(--accent-purple); border: none; border-radius: 8px; color: white; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .comment-input { flex: 1; background: rgba(0,0,0,0.15); border: 1px solid rgba(var(--border-glass-rgb), 0.15); border-radius: 8px; padding: 8px 12px; color: var(--text-white); font-size: 13px; outline: none; }
+        [data-theme="day"] .comment-input { background: rgba(255,255,255,0.3); }
+        .comment-send-btn { background: var(--accent-purple); border: none; border-radius: 8px; color: white; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.2s; }
+        .comment-send-btn:hover { background: var(--accent-hover); }
+
 
         /* Bottom Navigation Bar */
         .bottom-nav {
@@ -405,12 +410,12 @@
         </div>
     </div>
 
-    <!-- Community Lounge Lounge View -->
-    <div class="container" id="loungeView">
+    <!-- Community View -->
+    <div class="container" id="communityView">
         <div class="navbar">
             <div style="display: flex; align-items: center;">
                 <div class="logo-box"><i class="fas fa-comments"></i></div>
-                <div class="logo-text">Lounge</div>
+                <div class="logo-text">Community</div>
             </div>
             <div style="font-size: 12px; color: var(--price-green); font-weight: 700; display: flex; align-items: center; gap: 6px;">
                 <span style="width:8px; height:8px; background:var(--price-green); border-radius:50%; display:inline-block; animation:blink 1.5s infinite;"></span>
@@ -418,16 +423,16 @@
             </div>
         </div>
 
-        <div class="lounge-wrapper">
+        <div class="community-wrapper">
             <!-- Composer -->
-            <div class="lounge-composer">
+            <div class="community-composer">
                 <textarea id="composerContent" class="composer-textarea" placeholder="Ask a doubt or share a study tip with fellow students..."></textarea>
                 <div style="display: flex; gap: 10px; width: 100%;">
                     <input type="text" id="composerImage" class="glass-input" style="margin-top: 0; flex: 1;" placeholder="Optional: Attach Image/Screenshot URL">
                 </div>
                 <div class="composer-actions">
                     <span style="font-size:11px; color:var(--text-muted);"><i class="fas fa-shield-alt"></i> Please maintain community guidelines.</span>
-                    <button class="post-btn" id="composerPostBtn">Post to Lounge</button>
+                    <button class="post-btn" id="composerPostBtn">Post to Community</button>
                 </div>
             </div>
 
@@ -457,10 +462,11 @@
                     <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Display Name:</label>
                     <input type="text" id="profileNameInput" class="glass-input" placeholder="Enter your name">
                 </div>
-                <div>
+                <div style="margin-bottom: 12px;">
                     <label style="font-size:12px; color:var(--text-muted); font-weight:600;">Class / Batch Target:</label>
                     <input type="text" id="profileClassInput" class="glass-input" placeholder="e.g. JEE 2027 Aspirant">
                 </div>
+                <button class="explore-btn" id="saveProfileBtn" style="margin-top: 10px; width: 100%; padding: 10px;">Save Profile</button>
             </div>
 
             <!-- Theme Card -->
@@ -545,9 +551,9 @@
             <i class="fas fa-home"></i>
             <span>Home</span>
         </div>
-        <div class="nav-item" id="navLoungeBtn">
+        <div class="nav-item" id="navCommunityBtn">
             <i class="fas fa-comments"></i>
-            <span>Lounge</span>
+            <span>Community</span>
         </div>
         <div class="nav-item" id="navSettingsBtn">
             <i class="fas fa-cog"></i>
@@ -737,10 +743,10 @@
         
         // Navigation Options
         const mainContentView = document.getElementById('mainContentView');
-        const loungeView = document.getElementById('loungeView');
+        const communityView = document.getElementById('communityView');
         const settingsView = document.getElementById('settingsView');
         const navHomeBtn = document.getElementById('navHomeBtn');
-        const navLoungeBtn = document.getElementById('navLoungeBtn');
+        const navCommunityBtn = document.getElementById('navCommunityBtn');
         const navSettingsBtn = document.getElementById('navSettingsBtn');
 
         function playFeedbackSound() {
@@ -761,20 +767,20 @@
 
         function switchTab(target) {
             navHomeBtn.classList.remove('active');
-            navLoungeBtn.classList.remove('active');
+            navCommunityBtn.classList.remove('active');
             navSettingsBtn.classList.remove('active');
             
             mainContentView.style.display = 'none';
-            loungeView.classList.remove('active');
+            communityView.classList.remove('active');
             settingsView.classList.remove('active');
 
             if (target === 'home') {
                 navHomeBtn.classList.add('active');
                 mainContentView.style.display = 'block';
-            } else if (target === 'lounge') {
-                navLoungeBtn.classList.add('active');
-                loungeView.classList.add('active');
-                fetchLoungePosts();
+            } else if (target === 'community') {
+                navCommunityBtn.classList.add('active');
+                communityView.classList.add('active');
+                fetchCommunityPosts();
             } else if (target === 'settings') {
                 navSettingsBtn.classList.add('active');
                 settingsView.classList.add('active');
@@ -782,21 +788,24 @@
         }
 
         navHomeBtn.addEventListener('click', () => { playFeedbackSound(); switchTab('home'); });
-        navLoungeBtn.addEventListener('click', () => { playFeedbackSound(); switchTab('lounge'); });
+        navCommunityBtn.addEventListener('click', () => { playFeedbackSound(); switchTab('community'); });
         navSettingsBtn.addEventListener('click', () => { playFeedbackSound(); switchTab('settings'); });
 
         // Profile details config
         const profileNameInput = document.getElementById('profileNameInput');
         const profileClassInput = document.getElementById('profileClassInput');
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
 
         profileNameInput.value = localStorage.getItem('pwzone_user_name') || 'Anonymous';
         profileClassInput.value = localStorage.getItem('pwzone_user_class') || 'JEE Aspirant';
 
-        profileNameInput.addEventListener('input', (e) => {
-            localStorage.setItem('pwzone_user_name', e.target.value.trim() || 'Anonymous');
-        });
-        profileClassInput.addEventListener('input', (e) => {
-            localStorage.setItem('pwzone_user_class', e.target.value.trim() || 'JEE Aspirant');
+        saveProfileBtn.addEventListener('click', () => {
+            const nameVal = profileNameInput.value.trim() || 'Anonymous';
+            const classVal = profileClassInput.value.trim() || 'JEE Aspirant';
+            localStorage.setItem('pwzone_user_name', nameVal);
+            localStorage.setItem('pwzone_user_class', classVal);
+            playFeedbackSound();
+            alert("Profile settings saved successfully!");
         });
 
         // Unique Client ID for Likes
@@ -806,9 +815,9 @@
             localStorage.setItem('pwzone_client_id', clientId);
         }
 
-        // ================= COMMUNITY LOUNGE REAL-TIME LOGIC =================
+        // ================= COMMUNITY REAL-TIME LOGIC =================
         let wsc = null;
-        function initWebSocketLounge() {
+        function initWebSocketCommunity() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             wsc = new WebSocket(`${protocol}//${window.location.host}`);
             
@@ -832,7 +841,6 @@
                 } else if (eventData.type === 'new_comment') {
                     const postCard = document.getElementById(`post-${eventData.data.postId}`);
                     if (postCard) {
-                        // Append comment
                         appendCommentToDOM(eventData.data.postId, eventData.data.comment);
                     }
                 } else if (eventData.type === 'delete_post') {
@@ -842,12 +850,11 @@
             };
 
             wsc.onclose = () => {
-                // Auto reconnect
-                setTimeout(initWebSocketLounge, 3000);
+                setTimeout(initWebSocketCommunity, 3000);
             };
         }
 
-        async function fetchLoungePosts() {
+        async function fetchCommunityPosts() {
             const container = document.getElementById('postsContainer');
             container.innerHTML = '<div class="status-msg"><i class="fas fa-spinner fa-spin"></i> Streaming threads...</div>';
             try {
@@ -860,7 +867,7 @@
                     container.innerHTML = '<div class="status-msg"><i class="far fa-comments" style="font-size:32px; display:block; margin-bottom:10px;"></i> No posts yet. Start the conversation!</div>';
                 }
             } catch (err) {
-                container.innerHTML = '<div class="status-msg" style="color:#ff5e5e;">Lounge offline. Failed to stream posts.</div>';
+                container.innerHTML = '<div class="status-msg" style="color:#ff5e5e;">Community offline. Failed to stream posts.</div>';
             }
         }
 
@@ -888,10 +895,15 @@
             let commentsListHTML = '';
             if (post.comments && post.comments.length > 0) {
                 post.comments.forEach(c => {
+                    const timeString = c.timestamp ? new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                     commentsListHTML += `
                         <div class="comment-item">
-                            <span class="comment-author">${c.name} (${c.class}):</span>
-                            <span class="comment-text">${c.content}</span>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span class="comment-author">${c.name}</span>
+                                <span style="font-size: 10px; color: var(--text-muted); opacity: 0.85;">(${c.class})</span>
+                                ${timeString ? `<span style="font-size: 9px; color: var(--text-muted); margin-left: auto; opacity: 0.7;">${timeString}</span>` : ''}
+                            </div>
+                            <div class="comment-text" style="margin-top: 4px;">${c.content}</div>
                         </div>
                     `;
                 });
@@ -991,9 +1003,14 @@
             if (list) {
                 const div = document.createElement('div');
                 div.className = 'comment-item';
+                const timeString = comment.timestamp ? new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 div.innerHTML = `
-                    <span class="comment-author">${comment.name} (${comment.class}):</span>
-                    <span class="comment-text">${comment.content}</span>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span class="comment-author">${comment.name}</span>
+                        <span style="font-size: 10px; color: var(--text-muted); opacity: 0.85;">(${comment.class})</span>
+                        <span style="font-size: 9px; color: var(--text-muted); margin-left: auto; opacity: 0.7;">${timeString}</span>
+                    </div>
+                    <div class="comment-text" style="margin-top: 4px;">${comment.content}</div>
                 `;
                 list.appendChild(div);
                 
@@ -1042,7 +1059,7 @@
                     alert("Failed to publish post.");
                 }
             } catch (err) {
-                alert("Lounge connection offline.");
+                alert("Community connection offline.");
             }
         });
 
@@ -1084,7 +1101,7 @@
                     localStorage.setItem('pwzone_admin_token', resData.token);
                     adminPasswordInput.value = '';
                     updateAdminUI();
-                    fetchLoungePosts(); // Redraw posts to include delete buttons
+                    fetchCommunityPosts(); // Redraw posts to include delete buttons
                 } else {
                     alert("Invalid administrator password.");
                 }
@@ -1097,7 +1114,7 @@
             playFeedbackSound();
             localStorage.removeItem('pwzone_admin_token');
             updateAdminUI();
-            fetchLoungePosts(); // Redraw posts to remove delete buttons
+            fetchCommunityPosts(); // Redraw posts to remove delete buttons
         });
 
         async function deletePostDirect(postId) {
@@ -1170,7 +1187,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             fetchBatches();
-            initWebSocketLounge();
+            initWebSocketCommunity();
         });
     </script>
 </body>

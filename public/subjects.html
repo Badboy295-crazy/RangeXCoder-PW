@@ -560,6 +560,8 @@
                 rowContainer.innerHTML = '';
 
                 resData.data.forEach(item => {
+                    if (item.type !== 'LECTURE') return;
+                    
                     const sched = item.data || item;
                     const teacher = (sched.teachers && sched.teachers[0]) ? { name: "Batch Faculty", imageId: null } : { name: "Batch Faculty", imageId: null };
                     
@@ -584,46 +586,42 @@
                     const titleHeading = splitPos !== -1 ? topicText.substring(0, splitPos) : topicText;
                     const titleSubtext = splitPos !== -1 ? topicText.substring(splitPos + 3) : 'Live lecture discussion.';
 
-                    // Check live status
-                    const isLive = (sched.lectureType === 'LIVE' && sched.status === 'LIVE') || sched.tag === 'Live';
-                    const isCompleted = sched.status === 'COMPLETED' || sched.tag === 'Ended';
-                    const isDppQuiz = item.type === 'DPP_QUIZ' || (sched.dppData && sched.dppData.dppId);
+                    // Compute dynamic live status based on current time
+                    const now = new Date();
+                    const start = sched.startTime ? new Date(sched.startTime) : null;
+                    const end = sched.endTime ? new Date(sched.endTime) : null;
+
+                    let isLive = false;
+                    let isEnded = false;
+
+                    if (start && end) {
+                        if (now >= start && now <= end) {
+                            isLive = true;
+                        } else {
+                            isEnded = true;
+                        }
+                    } else {
+                        // Fallback check
+                        isLive = (sched.lectureType === 'LIVE' && sched.status === 'LIVE') || sched.tag === 'Live';
+                        isEnded = !isLive;
+                    }
 
                     const card = document.createElement('div');
                     card.id = `sched-card-${sched._id}`;
 
-                    let tagBgColor = '#0084ff';
-                    let tagTextLabel = sched.tag || 'Scheduled';
+                    let tagBgColor = '#32cd32';
+                    let tagTextLabel = 'LIVE ENDED';
                     
                     if (isLive) {
                         tagBgColor = '#ff3366';
-                        tagTextLabel = 'LIVE NOW';
-                    } else if (isCompleted) {
-                        tagBgColor = '#32cd32';
-                        tagTextLabel = 'Recorded';
-                    } else if (isDppQuiz) {
-                        tagBgColor = '#f97316';
-                        tagTextLabel = 'DPP QUIZ';
+                        tagTextLabel = 'LIVE';
                     }
 
-                    let clickFnStr = '';
-                    let isClickable = false;
+                    const clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
+                    
+                    card.className = 'lecture-card clickable';
+                    card.setAttribute('onclick', clickFnStr);
 
-                    if (isLive) {
-                        isClickable = true;
-                        clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
-                    } else if (isCompleted && sched.videoDetails && (sched.videoDetails._id || sched.videoDetails.id)) {
-                        isClickable = true;
-                        clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
-                    } else if (isDppQuiz && sched.dppData && (sched.dppData.dppId || sched.dppData._id)) {
-                        isClickable = true;
-                        clickFnStr = `launchDppQuiz('${sched._id}', '${sched.dppData.dppId || sched.dppData._id}')`;
-                    }
-
-                    card.className = `lecture-card ${isClickable ? 'clickable' : ''}`;
-                    if (isClickable) {
-                        card.setAttribute('onclick', clickFnStr);
-                    }
 
                     let previewUrl = avatarUrl;
                     if (sched.videoDetails && sched.videoDetails.image) {

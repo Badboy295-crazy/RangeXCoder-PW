@@ -69,8 +69,8 @@ function broadcast(event) {
 
 // WebSocket Connection
 wss.on('connection', (ws) => {
-    console.log('Client connected to WebSockets community Lounge.');
-    ws.send(JSON.stringify({ type: 'welcome', message: 'Connected to PW Zone Lounge' }));
+    console.log('Client connected to WebSockets community space.');
+    ws.send(JSON.stringify({ type: 'welcome', message: 'Connected to PW Zone Community' }));
 });
 
 // ================= EXISTING LOGIC & APIS =================
@@ -338,25 +338,12 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
         throw new Error("No videoId found in lecture details.");
     }
     
-    const targetTag = tag || match.tags?.[0]?._id || match.topicId;
-    let rawNotes = [];
-    let rawDpps = [];
     let videoRes = null;
-
     try {
-        const [vRes, notesRes, dppsRes] = await Promise.all([
-            axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 }),
-            targetTag ? axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=notes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null) : null,
-            targetTag ? axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=DppNotes&tag=${targetTag}`, { headers: HEADERS, timeout: 5000 }).catch(() => null) : null
-        ]);
-        videoRes = vRes;
-        rawNotes = notesRes?.data?.data || [];
-        rawDpps = dppsRes?.data?.data || [];
+        videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
     } catch (e) {
-        console.error("Parallel details and notes fetch error:", e.message);
-        if (!videoRes) {
-            videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
-        }
+        console.error("Video details fetch error:", e.message);
+        throw e;
     }
 
     const videoUrl = videoRes?.data?.data?.videoUrl;
@@ -372,28 +359,6 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     
     const constructedHlsUrl = `https://stream.pimaxer.in/${uuid}/master.m3u8`;
     
-    const parseNotes = (items) => {
-        const result = [];
-        for (const item of items) {
-            const hw = item.homeworkIds?.[0];
-            if (hw) {
-                const att = hw.attachmentIds?.[0];
-                if (att) {
-                    const fileKey = att.key;
-                    const url = fileKey ? `${att.baseUrl || "https://static.pw.live/"}${fileKey}` : "";
-                    result.push({
-                        name: hw.topic || att.name,
-                        url: url
-                    });
-                }
-            }
-        }
-        return result;
-    };
-    
-    const notes = parseNotes(rawNotes);
-    const dppNotes = parseNotes(rawDpps);
-    
     return {
         videoData: {
             url: constructedHlsUrl,
@@ -401,8 +366,8 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
             keys: []
         },
         pwHeaders: {},
-        notes: notes,
-        dppNotes: dppNotes,
+        notes: [],
+        dppNotes: [],
         topicName: match.topic || "Stream Player",
         slides: []
     };
@@ -585,7 +550,7 @@ app.get('/watch', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'w
 
 server.listen(PORT, () => {
     console.log(`===================================================`);
-    console.log(`   PW Zone Engine Active with Real-Time Lounge!`);
+    console.log(`   PW Zone Engine Active with Real-Time Community!`);
     console.log(`   URL: http://localhost:${PORT}`);
     console.log(`===================================================`);
 });

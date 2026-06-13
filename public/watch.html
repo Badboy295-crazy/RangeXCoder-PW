@@ -9,8 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
     (function() {
-      const theme = localStorage.getItem('pwzone_theme') || 'night';
-      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-theme', 'night');
       const activeThemeClass = localStorage.getItem('pwzone_color_theme') || 'theme-classic';
       document.documentElement.className = activeThemeClass;
     })();
@@ -308,6 +307,12 @@
         <div id="bufSpin"></div>
         <div id="tap-shield"></div>
 
+        <!-- Hold Speed Indicator -->
+        <div id="holdSpeedIndicator" style="display:none; position:absolute; top:25px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.65); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.15); color:white; padding:8px 18px; border-radius:30px; font-size:12px; font-weight:700; z-index:99; pointer-events:none; letter-spacing:0.5px; align-items:center; gap:6px; box-shadow:var(--shadow);">
+          <span style="width:6px; height:6px; background:#ff3366; border-radius:50%; display:inline-block; animation:blink 1.2s infinite; box-shadow: 0 0 6px #ff3366;"></span>
+          <span id="holdSpeedText">2.0x Fast Forward</span>
+        </div>
+
         <!-- HTML Player HUD controls -->
         <div id="ctrl-overlay" class="hidden">
           <div id="player-header">
@@ -315,16 +320,6 @@
               <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             </button>
             <div id="player-title">Stream Lecture Player</div>
-            <button id="tlBtn" class="cbtn tl-btn" title="Toggle Timeline Panel">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M4 12h16M4 18h12"/></svg>
-            </button>
-            <button id="tdBtn" class="cbtn" title="More Options">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
-              <div id="tdMenu">
-                <div class="tdm-row" id="tdTimeline"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h12"/></svg>Timeline</div>
-                <div class="tdm-row" id="tdAttach"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>Attachments</div>
-              </div>
-            </button>
           </div>
 
           <div id="ctrl-mid"></div>
@@ -382,7 +377,7 @@
               <div class="s-row" id="sSpeedRow"><span class="s-lbl">Speed</span><span class="s-val" id="sSpeedVal">Normal<i class="fas fa-chevron-right"></i></span></div>
               <div class="s-row" id="sQualRow"><span class="s-lbl">Quality</span><span class="s-val" id="sQualVal">Auto<i class="fas fa-chevron-right"></i></span></div>
               <div class="s-row" id="sBoostRow"><span class="s-lbl">Audio Boost</span><span class="s-val" id="sBoostVal">Off<i class="fas fa-chevron-right"></i></span></div>
-              <div class="s-row" id="sThemeRow"><span class="s-lbl">Theme</span><span class="s-val" id="sThemeVal">Night<i class="fas fa-chevron-right"></i></span></div>
+              <div class="s-row" id="sHoldSpeedRow"><span class="s-lbl">Hold Speed</span><span class="s-val" id="sHoldSpeedVal">2.0x<i class="fas fa-chevron-right"></i></span></div>
             </div>
             <div class="s-sub" id="sSpeedSub">
               <div class="s-back" id="sSpeedBack"><i class="fas fa-chevron-left"></i><span>Playback Speed</span></div>
@@ -397,23 +392,13 @@
               <div class="s-back" id="sBoostBack"><i class="fas fa-chevron-left"></i><span>Audio Enhancer</span></div>
               <div class="s-scroll" id="sBoostOpts"></div>
             </div>
-            <div class="s-sub" id="sThemeSub">
-              <div class="s-back" id="sThemeBack"><i class="fas fa-chevron-left"></i><span>Theme Toggle</span></div>
-              <div class="s-scroll" id="sThemeOpts"></div>
+            <div class="s-sub" id="sHoldSpeedSub">
+              <div class="s-back" id="sHoldSpeedBack"><i class="fas fa-chevron-left"></i><span>Hold Playback Speed</span></div>
+              <div class="s-scroll" id="sHoldSpeedOpts"></div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Right side slides drawer on Desktop layout -->
-      <div id="side-panel">
-        <div class="panel-inner" id="panelInner"></div>
-      </div>
-    </div>
-
-    <!-- Bottom overlay drawer for mobile layout view -->
-    <div id="bottom-panel">
-      <div class="panel-inner" id="panelInnerMob"></div>
     </div>
   </div>
 
@@ -433,73 +418,13 @@ let SLIDES = [];
     /* ── LAYOUT ────────────────────────────────────── */
     let panelOpen=false,curTab='tl',tdOpen=false;
     function isDesktop(){return !!(document.fullscreenElement||document.webkitFullscreenElement)||window.screen.width>window.screen.height||window.screen.width>=768;}
-    function applyLayout(){const s=document.getElementById('shell');if(isDesktop()){s.classList.remove('layout-mobile');s.classList.add('layout-desktop');}else{s.classList.remove('layout-desktop');s.classList.add('layout-mobile');}if(panelOpen)openPanel(curTab);}
+    function applyLayout(){const s=document.getElementById('shell');if(isDesktop()){s.classList.remove('layout-mobile');s.classList.add('layout-desktop');}else{s.classList.remove('layout-desktop');s.classList.add('layout-mobile');}}
     window.addEventListener('resize',applyLayout);
     window.addEventListener('orientationchange',()=>setTimeout(applyLayout,100));
     if(screen.orientation)screen.orientation.addEventListener('change',()=>setTimeout(applyLayout,100));
     document.addEventListener('fullscreenchange',()=>setTimeout(applyLayout,50));
     document.addEventListener('webkitfullscreenchange',()=>setTimeout(applyLayout,50));
     applyLayout();
-
-    /* ── PDF PREVIEW ───────────────────────────────── */
-    function previewPDF(url,name){
-      if(!url){alert('No file URL available.');return;}
-      const pi=document.getElementById(isDesktop()?'panelInner':'panelInnerMob');
-      pi.querySelector('#mainPanelBody').style.display='none';
-      pi.querySelector('#panelTabsArea').style.display='none';
-      pi.querySelector('.panel-hdr-title').textContent='Preview';
-      pi.querySelector('#pdfPreviewWrap').style.cssText='display:flex;flex-direction:column;flex:1;min-height:0';
-      pi.querySelector('#pdfPreviewTitle').textContent=name;
-      const fc=pi.querySelector('#pdfFrameContainer');
-      fc.innerHTML='<div class="pdf-loading"><div class="spinner"></div><p>Loading PDF…</p></div>';
-      function render(){
-        const lib=window['pdfjs-dist/build/pdf'];
-        lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        lib.getDocument({url,cMapUrl:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',cMapPacked:true}).promise.then(doc=>{
-          fc.innerHTML='';const wrap=document.createElement('div');wrap.className='pdf-canvas-wrap';fc.appendChild(wrap);
-          const dpr=window.devicePixelRatio||1,w=fc.clientWidth||360;
-          function rp(n){if(n>doc.numPages)return;doc.getPage(n).then(page=>{const vp=page.getViewport({scale:(w-16)/page.getViewport({scale:1}).width*dpr});const c=document.createElement('canvas');c.className='pdf-page-canvas';c.width=vp.width;c.height=vp.height;c.style.width=(vp.width/dpr)+'px';c.style.height=(vp.height/dpr)+'px';wrap.appendChild(c);page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise.then(()=>rp(n+1));});}
-          rp(1);
-        }).catch(()=>{fc.innerHTML=`<div class="pdf-err"><p>Could not load PDF.</p><a href="${url}" target="_blank" rel="noopener">Open PDF ↗</a></div>`;});
-      }
-      if(window['pdfjs-dist/build/pdf']){render();return;}
-      const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=render;s.onerror=()=>{fc.innerHTML=`<div class="pdf-err"><p>PDF viewer failed.</p><a href="${url}" target="_blank" rel="noopener">Open PDF ↗</a></div>`;};document.head.appendChild(s);
-    }
-    function closePDFPreview(pi){pi.querySelector('#mainPanelBody').style.display='';pi.querySelector('#panelTabsArea').style.display='';pi.querySelector('#pdfPreviewWrap').style.display='none';pi.querySelector('#pdfFrameContainer').innerHTML='';const t=pi.querySelector('.ptab.active');if(t)pi.querySelector('.panel-hdr-title').textContent=t.dataset.tab==='tl'?'Timeline':'Attachments';}
-    function downloadPDF(url,name){if(!url){alert('No file URL available.');return;}const fn=(name.trim().toLowerCase().endsWith('.pdf')?name.trim():name.trim()+'.pdf').replace(/:/g,' -').replace(/[/\\?%*|"<>]/g,'-').replace(/ {2,}/g,' ').trim();const a=Object.assign(document.createElement('a'),{href:url,download:fn,target:'_blank',rel:'noopener'});document.body.appendChild(a);a.click();setTimeout(()=>document.body.removeChild(a),100);}
-
-    /* ── BUILD PANEL ───────────────────────────────── */
-    function buildPanelHTML(){
-      let tlH='<div class="tl-list">';
-      if(SLIDES&&SLIDES.length){SLIDES.forEach((s,i)=>{tlH+=`<div class="tl-card" data-idx="${i}" onclick="seekSlide(${s.timestamp})">${s.image?`<img class="tl-img" src="${s.image}" alt="" loading="lazy" onerror="this.style.background='#1c1c27'">`:'<div class="tl-img"></div>'}<span class="tl-cur-badge">&#9654; Current</span><div class="tl-ov"><span class="tl-name">${s.name||''}</span><span class="tl-ts">${fmt(s.timestamp)}</span></div></div>`;});}else{tlH+='<div class="no-items">No slides available</div>';}tlH+='</div>';
-      function grp(items,dc,ic,tc,cc,svg,lbl,pfx){if(!items||!items.length)return '';let h=`<div class="acc open" id="acc-${pfx}"><div class="acc-hdr" onclick="this.closest('.acc').classList.toggle('open')"><div class="acc-hl"><div class="acc-ic ${ic}">${svg}</div><span class="acc-title ${tc}">${lbl}</span><span class="acc-cnt ${cc}">${items.length}</span></div><div class="acc-chev"><svg viewBox="0 0 24 24" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="acc-body"><div class="acc-inner">`;items.forEach((it,i)=>{const nm=(it.name||lbl+' '+(i+1)).replace(/'/g,"\\'");const su=(it.url||'').replace(/'/g,"\\'");h+=`<div class="att-item"><div class="att-dot ${dc}"></div><span class="att-name">${it.name||lbl+' '+(i+1)}</span><div class="att-actions"><button class="att-btn preview" onclick="previewPDF('${su}','${nm}')"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="att-btn open-tab" onclick="window.open('${su}','_blank','noopener')"><svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button><button class="att-btn download" onclick="downloadPDF('${su}','${nm}')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></div></div>`;});h+='</div></div></div>';return h;}
-      const nSvg='<svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>';
-      const dSvg='<svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>';
-      let attH=grp(NOTES,'nd','ni','nt','nc',nSvg,'Notes','note')+grp(DPP_NOTES,'dd','di','dt','dc',dSvg,'DPP','dpp');
-      if(!attH)attH='<div class="no-items">No attachments available</div>';
-      return `<div class="panel-hdr"><span class="panel-hdr-title">Timeline</span><button class="panel-close" onclick="closePanel()"><svg viewBox="0 0 24 24" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div><div class="panel-tabs" id="panelTabsArea"><button class="ptab active" data-tab="tl" onclick="swTab(this,'tl')"><svg viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.5" d="M3.167 5.583a.083.083 0 01.166 0v12.834a.083.083 0 01-.167 0V5.583zM5.667 17.333a1 1 0 001 1h10.666a1 1 0 001-1V6.667a1 1 0 00-1-1H6.667a1 1 0 00-1 1v10.666zm4.888-3.3V9.966L13.945 12l-3.39 2.034zM20.666 5.583a.083.083 0 11.167 0v12.834a.083.083 0 01-.166 0V5.583z"/></svg>Timeline</button><button class="ptab" data-tab="att" onclick="swTab(this,'att')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>Attachments</button></div><div class="panel-body" id="mainPanelBody"><div class="ptab-panel active" data-p="tl">${tlH}</div><div class="ptab-panel" data-p="att">${attH}</div></div><div class="pdf-preview-wrap" id="pdfPreviewWrap" style="display:none;flex:1;min-height:0"><div class="pdf-preview-topbar"><button class="pdf-back-btn" onclick="closePDFPreview(this.closest('.panel-inner'))"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Back</button><span class="pdf-preview-title" id="pdfPreviewTitle"></span></div><div class="pdf-frame-container" id="pdfFrameContainer"><div class="pdf-loading"><div class="spinner"></div><p>Loading PDF…</p></div></div></div>`;
-    }
-    const PANEL_HTML=buildPanelHTML();
-    document.getElementById('panelInner').innerHTML=PANEL_HTML;
-    document.getElementById('panelInnerMob').innerHTML=PANEL_HTML;
-
-    /* ── PANEL TABS / OPEN / CLOSE ─────────────────── */
-    function swTab(btn,tab){const pi=btn.closest('.panel-inner');pi.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));pi.querySelectorAll('.ptab-panel').forEach(p=>p.classList.toggle('active',p.dataset.p===tab));pi.querySelector('.panel-hdr-title').textContent=tab==='tl'?'Timeline':'Attachments';if(tab==='tl')syncSlide(true);}
-    function activateTab(pi,tab){pi.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));pi.querySelectorAll('.ptab-panel').forEach(p=>p.classList.toggle('active',p.dataset.p===tab));pi.querySelector('.panel-hdr-title').textContent=tab==='tl'?'Timeline':'Attachments';}
-    function getActivePanelInner(){return document.getElementById(isDesktop()?'panelInner':'panelInnerMob');}
-    function openPanel(tab){curTab=tab||'tl';panelOpen=true;if(isDesktop()){document.getElementById('bottom-panel').classList.remove('open');const pi=document.getElementById('panelInner');const pw=pi.querySelector('#pdfPreviewWrap');if(pw&&pw.style.display!=='none')closePDFPreview(pi);activateTab(pi,curTab);document.getElementById('side-panel').classList.add('open');}else{document.getElementById('side-panel').classList.remove('open');const pi=document.getElementById('panelInnerMob');const pw=pi.querySelector('#pdfPreviewWrap');if(pw&&pw.style.display!=='none')closePDFPreview(pi);activateTab(pi,curTab);document.getElementById('bottom-panel').classList.add('open');}if(curTab==='tl')setTimeout(()=>syncSlide(true),80);}
-    function closePanel(){panelOpen=false;document.getElementById('bottom-panel').classList.remove('open');document.getElementById('side-panel').classList.remove('open');}
-
-    /* ── THREE-DOT MENU ────────────────────────────── */
-    document.getElementById('tdBtn').addEventListener('click',e=>{e.stopPropagation();tdOpen=!tdOpen;document.getElementById('tdMenu').classList.toggle('on',tdOpen);});
-    document.addEventListener('click',()=>{tdOpen=false;document.getElementById('tdMenu').classList.remove('on');});
-    document.getElementById('tdTimeline').addEventListener('click',e=>{e.stopPropagation();openPanel('tl');tdOpen=false;document.getElementById('tdMenu').classList.remove('on');});
-    document.getElementById('tdAttach').addEventListener('click',e=>{e.stopPropagation();openPanel('att');tdOpen=false;document.getElementById('tdMenu').classList.remove('on');});
-    document.getElementById('tlBtn').addEventListener('click',e=>{e.stopPropagation();(panelOpen&&isDesktop())?closePanel():openPanel('tl');});
-
-    /* ── SLIDE SYNC ────────────────────────────────── */
-    function seekSlide(ts){const v=window.V;if(!v||!isFinite(v.duration)||v.duration<=0)return;v.currentTime=ts;v.play().catch(()=>{});syncSlide(false);if(!isDesktop())closePanel();}
-    function syncSlide(doScroll){if(!SLIDES||!SLIDES.length||!window.V)return;const ct=window.V.currentTime;let idx=0;for(let i=0;i<SLIDES.length;i++){if(ct>=SLIDES[i].timestamp)idx=i;else break;}document.querySelectorAll('.tl-card').forEach(el=>el.classList.toggle('cur',+el.dataset.idx===idx));if(doScroll){const pi=getActivePanelInner();const cur=pi?pi.querySelector('.tl-card.cur'):null;if(cur)cur.scrollIntoView({block:'nearest',behavior:'smooth'});}}
 
     ['contextmenu','selectstart','dragstart','copy'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault()));
     
@@ -647,14 +572,30 @@ let SLIDES = [];
     updVol();updMuteIcon();
 
     /* ── SETTINGS ──────────────────────────────── */
+    let regularPlaybackRate = 1.0;
+    function setSpeed(sp) {
+      vid.playbackRate = sp;
+      regularPlaybackRate = sp;
+      spdBadge.textContent = sp === 1 ? '1x' : sp + 'x';
+      const lbl = sp === 1 ? 'Normal' : sp + 'x';
+      document.getElementById('sSpeedVal').textContent = lbl;
+      const opts = document.getElementById('sSpeedOpts');
+      if (opts) {
+        opts.querySelectorAll('.sopt').forEach(o => {
+          const val = parseFloat(o.textContent);
+          o.classList.toggle('active', val === sp || (isNaN(val) && sp === 1));
+        });
+      }
+    }
+
     function showSub(v){
       sMain.classList.toggle('off',v!=='main');
       sSpeedSub.classList.toggle('on',v==='speed');
       sQualSub.classList.toggle('on',v==='quality');
       document.getElementById('sBoostSub').classList.toggle('on',v==='boost');
-      document.getElementById('sThemeSub').classList.toggle('on',v==='theme');
+      document.getElementById('sHoldSpeedSub').classList.toggle('on',v==='holdspeed');
     }
-    function openSett(){settOpen=true;showSub('main');settPanel.classList.add('on');settBd.classList.add('on');clearTimeout(hideTimer);buildThemeOpts();buildBoostOpts();}
+    function openSett(){settOpen=true;showSub('main');settPanel.classList.add('on');settBd.classList.add('on');clearTimeout(hideTimer);buildHoldSpeed();buildBoostOpts();}
     function closeSett(){settOpen=false;settPanel.classList.remove('on');settBd.classList.remove('on');showSub('main');scheduleHide();}
     settBtn.addEventListener('click',e=>{e.stopPropagation();settOpen?closeSett():openSett();});
     settBd.addEventListener('click',e=>{e.stopPropagation();closeSett();});
@@ -662,13 +603,13 @@ let SLIDES = [];
     document.getElementById('sSpeedRow').addEventListener('click',e=>{e.stopPropagation();showSub('speed');});
     document.getElementById('sQualRow').addEventListener('click',e=>{e.stopPropagation();showSub('quality');});
     document.getElementById('sBoostRow').addEventListener('click',e=>{e.stopPropagation();showSub('boost');});
-    document.getElementById('sThemeRow').addEventListener('click',e=>{e.stopPropagation();showSub('theme');});
+    document.getElementById('sHoldSpeedRow').addEventListener('click',e=>{e.stopPropagation();showSub('holdspeed');});
     document.getElementById('sSpeedBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
     document.getElementById('sQualBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
     document.getElementById('sBoostBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
-    document.getElementById('sThemeBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
+    document.getElementById('sHoldSpeedBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
 
-    function buildSpeed(){const c=document.getElementById('sSpeedOpts');c.innerHTML='';[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6].forEach(sp=>{const lbl=sp===1?'Normal':sp+'x';const d=document.createElement('div');d.className='sopt'+(sp===1?' active':'');d.innerHTML=`<span>${lbl}</span><div class="radio"><div class="rdot"></div></div>`;d.onclick=e=>{e.stopPropagation();vid.playbackRate=sp;spdBadge.textContent=sp+'x';document.getElementById('sSpeedVal').textContent=lbl;c.querySelectorAll('.sopt').forEach(o=>o.classList.remove('active'));d.classList.add('active');closeSett();};c.appendChild(d);});}
+    function buildSpeed(){const c=document.getElementById('sSpeedOpts');c.innerHTML='';[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6].forEach(sp=>{const lbl=sp===1?'Normal':sp+'x';const d=document.createElement('div');d.className='sopt'+(sp===1?' active':'');d.innerHTML=`<span>${lbl}</span><div class="radio"><div class="rdot"></div></div>`;d.onclick=e=>{e.stopPropagation();setSpeed(sp);closeSett();};c.appendChild(d);});}
 
     function buildQual(levels){const c=document.getElementById('sQualOpts');c.innerHTML='';[{label:'Auto',value:-1},...levels].forEach(lv=>{const d=document.createElement('div');d.className='sopt'+(lv.value===-1?' active':'');d.innerHTML=`<span>${lv.label}</span><div class="radio"><div class="rdot"></div></div>`;d.onclick=e=>{e.stopPropagation();document.getElementById('sQualVal').textContent=lv.label;c.querySelectorAll('.sopt').forEach(o=>o.classList.remove('active'));d.classList.add('active');if(hlsInst){if(lv.value===-1){hlsInst.autoLevelCapping=-1;hlsInst.nextLevel=-1;}else{hlsInst.autoLevelCapping=lv.value;hlsInst.nextLevel=lv.value;}}if(shakaInst){try{if(lv.value===-1){shakaInst.configure({abr:{enabled:true}});}else{const t=shakaInst.getVariantTracks().find(t=>t.id===lv.value);if(t){shakaInst.configure({abr:{enabled:false}});shakaInst.selectVariantTrack(t,true);}}}catch{}}closeSett();};c.appendChild(d);});}
 
@@ -678,6 +619,7 @@ let SLIDES = [];
     let gainNode = null;
     let hpFilter = null;
     let peakFilter = null;
+    let compressorNode = null;
     
     let isVocalClearOn = localStorage.getItem('pwzone_vocalclear') === 'true';
     let isVoiceBoostOn = localStorage.getItem('pwzone_voiceboost') === 'true';
@@ -695,13 +637,21 @@ let SLIDES = [];
         
         peakFilter = audioCtx.createBiquadFilter();
         peakFilter.type = 'peaking';
-        peakFilter.frequency.value = 2000;
+        peakFilter.frequency.value = 2500; // tuned voice clarity frequency
         peakFilter.Q.value = 1.0;
         peakFilter.gain.value = 0; // flat
         
+        compressorNode = audioCtx.createDynamicsCompressor();
+        compressorNode.threshold.value = -3;
+        compressorNode.knee.value = 10;
+        compressorNode.ratio.value = 12;
+        compressorNode.attack.value = 0.003;
+        compressorNode.release.value = 0.15;
+        
         sourceNode.connect(hpFilter);
         hpFilter.connect(peakFilter);
-        peakFilter.connect(gainNode);
+        peakFilter.connect(compressorNode);
+        compressorNode.connect(gainNode);
         gainNode.connect(audioCtx.destination);
       } catch (e) {
         console.error("Audio Context Init Error:", e);
@@ -726,8 +676,8 @@ let SLIDES = [];
         }
         if (audioCtx) {
           // Apply filters
-          hpFilter.frequency.value = isVocalClearOn ? 180 : 20;
-          peakFilter.gain.value = isVocalClearOn ? 8 : 0;
+          hpFilter.frequency.value = isVocalClearOn ? 120 : 20; // flat cut-off frequency
+          peakFilter.gain.value = isVocalClearOn ? 3.5 : 0;      // peak limiter boost
           gainNode.gain.value = isVoiceBoostOn ? 2.5 : 1.0;
 
           // Set display status message
@@ -775,26 +725,23 @@ let SLIDES = [];
       });
     }
 
-    function buildThemeOpts(){
-      const c = document.getElementById('sThemeOpts');
+    let currentHoldSpeed = parseFloat(localStorage.getItem('pwzone_hold_speed')) || 2.0;
+    document.getElementById('sHoldSpeedVal').textContent = currentHoldSpeed === 1 ? 'Normal' : currentHoldSpeed + 'x';
+
+    function buildHoldSpeed(){
+      const c = document.getElementById('sHoldSpeedOpts');
       c.innerHTML = '';
-      const currentTheme = localStorage.getItem('pwzone_theme') || 'night';
-      document.getElementById('sThemeVal').textContent = currentTheme === 'day' ? 'Day' : 'Night';
-      
-      const opts = [
-        { label: 'Day Mode', value: 'day' },
-        { label: 'Night Mode', value: 'night' }
-      ];
-      opts.forEach(op => {
-        const active = currentTheme === op.value;
+      [0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6].forEach(sp=>{
+        const lbl = sp === 1 ? 'Normal' : sp + 'x';
+        const active = sp === currentHoldSpeed;
         const d = document.createElement('div');
         d.className = 'sopt' + (active ? ' active' : '');
-        d.innerHTML = `<span>${op.label}</span><div class="radio"><div class="rdot"></div></div>`;
+        d.innerHTML = `<span>${lbl}</span><div class="radio"><div class="rdot"></div></div>`;
         d.onclick = e => {
           e.stopPropagation();
-          localStorage.setItem('pwzone_theme', op.value);
-          document.documentElement.setAttribute('data-theme', op.value);
-          document.getElementById('sThemeVal').textContent = op.label.replace(' Mode', '');
+          currentHoldSpeed = sp;
+          localStorage.setItem('pwzone_hold_speed', sp);
+          document.getElementById('sHoldSpeedVal').textContent = lbl;
           c.querySelectorAll('.sopt').forEach(o => o.classList.remove('active'));
           d.classList.add('active');
           closeSett();
@@ -803,13 +750,29 @@ let SLIDES = [];
       });
     }
 
+    function activateHoldSpeed() {
+      vid.playbackRate = currentHoldSpeed;
+      document.getElementById('holdSpeedText').textContent = currentHoldSpeed + 'x Fast Forward';
+      document.getElementById('holdSpeedIndicator').style.display = 'flex';
+      overlay.classList.remove('visible');
+      overlay.classList.add('hidden');
+      tapShield.classList.add('on');
+    }
+
+    function deactivateHoldSpeed() {
+      vid.playbackRate = regularPlaybackRate;
+      document.getElementById('holdSpeedIndicator').style.display = 'none';
+      showControls();
+      scheduleHide();
+    }
+
     vid.addEventListener('play', () => {
       if (isVocalClearOn || isVoiceBoostOn) {
         applyAudioSettings();
       }
     }, { once: true });
 
-    buildSpeed();buildQual([]);buildBoostOpts();buildThemeOpts();
+    buildSpeed();buildQual([]);buildBoostOpts();buildHoldSpeed();
 
     /* ── FULLSCREEN ────────────────────────────── */
     fsBtn.addEventListener('click',e=>{e.stopPropagation();const fs=!!(document.fullscreenElement||document.webkitFullscreenElement);if(fs)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else{const el=document.getElementById('shell');(el.requestFullscreen||el.webkitRequestFullscreen).call(el);}});
@@ -817,8 +780,148 @@ let SLIDES = [];
     document.addEventListener('fullscreenchange',onFs);
     document.addEventListener('webkitfullscreenchange',onFs);
 
-    /* ── KEYBOARD ──────────────────────────────── */
-    document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();doToggle();}else if(e.code==='ArrowLeft')seekBy(-10);else if(e.code==='ArrowRight')seekBy(10);else if(e.code==='ArrowUp'){vid.volume=Math.min(1,vid.volume+.1);volBar.value=Math.round(vid.volume*100);vid.muted=false;updVol();updMuteIcon();}else if(e.code==='ArrowDown'){vid.volume=Math.max(0,vid.volume-.1);volBar.value=Math.round(vid.volume*100);if(!vid.volume)vid.muted=true;updVol();updMuteIcon();}onInteraction();});
+    /* ── KEYBOARD & TOUCH HOLD CONTROLS ──────────────── */
+    const SPEED_PRESETS = [0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6];
+    let isHoldingSpace = false;
+    let spaceTimeout = null;
+    let wasPausedOnSpaceDown = false;
+
+    document.addEventListener('keydown', e => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      
+      const key = e.code;
+      
+      if (key === 'Space') {
+        e.preventDefault();
+        if (!e.repeat) {
+          wasPausedOnSpaceDown = vid.paused;
+          if (wasPausedOnSpaceDown) {
+            vid.play().catch(() => {});
+          }
+          clearTimeout(spaceTimeout);
+          spaceTimeout = setTimeout(() => {
+            isHoldingSpace = true;
+            activateHoldSpeed();
+          }, 350);
+        }
+        return;
+      }
+      
+      if (key === 'KeyK') {
+        e.preventDefault();
+        doToggle();
+      } else if (key === 'KeyM') {
+        e.preventDefault();
+        muteBtn.click();
+      } else if (key === 'KeyF') {
+        e.preventDefault();
+        fsBtn.click();
+      } else if (key === 'ArrowLeft') {
+        e.preventDefault();
+        seekBy(-5);
+      } else if (key === 'ArrowRight') {
+        e.preventDefault();
+        seekBy(5);
+      } else if (key === 'KeyJ') {
+        e.preventDefault();
+        seekBy(-10);
+      } else if (key === 'KeyL') {
+        e.preventDefault();
+        seekBy(10);
+      } else if (key === 'ArrowUp') {
+        e.preventDefault();
+        vid.volume = Math.min(1, vid.volume + 0.05);
+        volBar.value = Math.round(vid.volume * 100);
+        vid.muted = false;
+        updVol();
+        updMuteIcon();
+      } else if (key === 'ArrowDown') {
+        e.preventDefault();
+        vid.volume = Math.max(0, vid.volume - 0.05);
+        volBar.value = Math.round(vid.volume * 100);
+        if (!vid.volume) vid.muted = true;
+        updVol();
+        updMuteIcon();
+      } else if (key === 'Comma') {
+        e.preventDefault();
+        const idx = SPEED_PRESETS.indexOf(regularPlaybackRate);
+        if (idx > 0) {
+          setSpeed(SPEED_PRESETS[idx - 1]);
+        }
+      } else if (key === 'Period') {
+        e.preventDefault();
+        const idx = SPEED_PRESETS.indexOf(regularPlaybackRate);
+        if (idx !== -1 && idx < SPEED_PRESETS.length - 1) {
+          setSpeed(SPEED_PRESETS[idx + 1]);
+        }
+      }
+      onInteraction();
+    });
+
+    document.addEventListener('keyup', e => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        clearTimeout(spaceTimeout);
+        if (isHoldingSpace) {
+          isHoldingSpace = false;
+          deactivateHoldSpeed();
+          if (wasPausedOnSpaceDown) {
+            vid.pause();
+          }
+        } else {
+          if (!wasPausedOnSpaceDown) {
+            vid.pause();
+          }
+        }
+      }
+    });
+
+    let isHoldingTouch = false;
+    let touchTimeout = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const touchTarget = document.getElementById('video-col');
+    
+    touchTarget.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        clearTimeout(touchTimeout);
+        touchTimeout = setTimeout(() => {
+          isHoldingTouch = true;
+          activateHoldSpeed();
+        }, 400);
+      }
+    }, { passive: true });
+    
+    touchTarget.addEventListener('touchmove', e => {
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          clearTimeout(touchTimeout);
+        }
+      }
+    }, { passive: true });
+    
+    touchTarget.addEventListener('touchend', e => {
+      clearTimeout(touchTimeout);
+      if (isHoldingTouch) {
+        isHoldingTouch = false;
+        deactivateHoldSpeed();
+        e.preventDefault();
+      }
+    });
+    
+    touchTarget.addEventListener('touchcancel', e => {
+      clearTimeout(touchTimeout);
+      if (isHoldingTouch) {
+        isHoldingTouch = false;
+        deactivateHoldSpeed();
+      }
+    });
 
     /* ── LOADING / ERROR UI ────────────────────── */
     const loadStage=document.getElementById('loadStage');

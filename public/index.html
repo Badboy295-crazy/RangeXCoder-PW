@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="night">
 <head>
+    <script>
+      if (window.self !== window.top) {
+        window.top.location = window.self.location;
+        document.documentElement.innerHTML = `
+          <div style="position:fixed;inset:0;z-index:9999999;background:#0b0c16;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;">
+            <div style="background:rgba(255,51,102,0.08);border:1px solid rgba(255,51,102,0.25);border-radius:24px;padding:40px 30px;max-width:480px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+              <h1 style="font-size:20px;font-weight:700;line-height:1.6;margin-bottom:15px;color:#ff3366;">
+                Kripya apne dimaag ka jada use mat kro vrna lene ke deune pad jaeyga
+              </h1>
+              <p style="font-size:12px;color:#8e92b2;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">
+                iframe not allowed
+              </p>
+            </div>
+          </div>`;
+        window.stop();
+      }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Batches — PW Zone</title>
@@ -562,6 +579,17 @@
     </div>
 
     <script>
+        function decryptPayload(base64Str) {
+            const xorKey = "pwzone_super_secret_key_2026";
+            const binaryStr = atob(base64Str);
+            let output = "";
+            for (let i = 0; i < binaryStr.length; i++) {
+                const charCode = binaryStr.charCodeAt(i) ^ xorKey.charCodeAt(i % xorKey.length);
+                output += String.fromCharCode(charCode);
+            }
+            return JSON.parse(output);
+        }
+
         const motivationalQuotes = [
             "Believe you can and you're halfway there.",
             "Quality study session is starting. Prepare to focus!",
@@ -622,7 +650,8 @@
             try {
                 const response = await fetch('/api/batches');
                 updLoader('Rendering batch system grids...', 90);
-                const data = await response.json();
+                const resData = await response.json();
+                const data = decryptPayload(resData.payload);
                 allBatches = data.batches || data || [];
                 renderSystem();
                 hideLoader();
@@ -859,9 +888,10 @@
             container.innerHTML = '<div class="status-msg"><i class="fas fa-spinner fa-spin"></i> Streaming threads...</div>';
             try {
                 const response = await fetch('/api/posts');
-                const resData = await response.json();
+                const rawData = await response.json();
+                const resData = decryptPayload(rawData.payload);
                 container.innerHTML = '';
-                if (resData.success && resData.posts.length > 0) {
+                if (resData.posts && resData.posts.length > 0) {
                     resData.posts.forEach(post => addPostToDOM(post, false));
                 } else {
                     container.innerHTML = '<div class="status-msg"><i class="far fa-comments" style="font-size:32px; display:block; margin-bottom:10px;"></i> No posts yet. Start the conversation!</div>';
@@ -989,8 +1019,8 @@
                         content: commentVal
                     })
                 });
-                const resData = await response.json();
-                if (!resData.success) {
+                const rawData = await response.json();
+                if (!rawData.success) {
                     alert("Failed to submit comment response.");
                 }
             } catch (err) {
@@ -1051,8 +1081,8 @@
                         imageLink: composerImage.value.trim()
                     })
                 });
-                const resData = await response.json();
-                if (resData.success) {
+                const rawData = await response.json();
+                if (rawData.success) {
                     composerContent.value = '';
                     composerImage.value = '';
                 } else {
@@ -1096,8 +1126,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
                 });
-                const resData = await response.json();
-                if (resData.success) {
+                const rawData = await response.json();
+                if (rawData.success) {
+                    const resData = decryptPayload(rawData.payload);
                     localStorage.setItem('pwzone_admin_token', resData.token);
                     adminPasswordInput.value = '';
                     updateAdminUI();

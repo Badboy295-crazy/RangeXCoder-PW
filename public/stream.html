@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="night">
 <head>
+    <script>
+      if (window.self !== window.top) {
+        window.top.location = window.self.location;
+        document.documentElement.innerHTML = `
+          <div style="position:fixed;inset:0;z-index:9999999;background:#0b0c16;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;">
+            <div style="background:rgba(255,51,102,0.08);border:1px solid rgba(255,51,102,0.25);border-radius:24px;padding:40px 30px;max-width:480px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+              <h1 style="font-size:20px;font-weight:700;line-height:1.6;margin-bottom:15px;color:#ff3366;">
+                Kripya apne dimaag ka jada use mat kro vrna lene ke deune pad jaeyga
+              </h1>
+              <p style="font-size:12px;color:#8e92b2;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">
+                iframe not allowed
+              </p>
+            </div>
+          </div>`;
+        window.stop();
+      }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stream Workspace — PW Zone</title>
@@ -419,6 +436,17 @@
     </div>
 
     <script>
+        function decryptPayload(base64Str) {
+            const xorKey = "pwzone_super_secret_key_2026";
+            const binaryStr = atob(base64Str);
+            let output = "";
+            for (let i = 0; i < binaryStr.length; i++) {
+                const charCode = binaryStr.charCodeAt(i) ^ xorKey.charCodeAt(i % xorKey.length);
+                output += String.fromCharCode(charCode);
+            }
+            return JSON.parse(output);
+        }
+
         const motivationalQuotes = [
             "Mistakes are proof that you are trying. Keep learning!",
             "Hard work beats talent when talent doesn't work hard.",
@@ -497,7 +525,8 @@
             try {
                 if (activeSection === 'dpp') {
                     const response = await fetch(`/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${CHAPTER_ID}`);
-                    const resData = await response.json();
+                    const rawData = await response.json();
+                    const resData = decryptPayload(rawData.payload);
                     renderQuizLayout(resData.data || []);
                 } else {
                     let mappedType = 'videos';
@@ -506,7 +535,8 @@
                     if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
 
                     const response = await fetch(`/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${CHAPTER_ID}`);
-                    const resData = await response.json();
+                    const rawData = await response.json();
+                    const resData = decryptPayload(rawData.payload);
                     
                     if (activeSection === 'videos') renderLecturesLayout(resData.data || []);
                     else if (activeSection === 'notes' || activeSection === 'dpp-pdf') renderSheetsLayout(resData.data || [], activeSection === 'dpp-pdf');

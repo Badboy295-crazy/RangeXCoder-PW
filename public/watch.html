@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    if (window.self !== window.top) {
+      window.top.location = window.self.location;
+      document.documentElement.innerHTML = `
+        <div style="position:fixed;inset:0;z-index:9999999;background:#0b0c16;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;">
+          <div style="background:rgba(255,51,102,0.08);border:1px solid rgba(255,51,102,0.25);border-radius:24px;padding:40px 30px;max-width:480px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+            <h1 style="font-size:20px;font-weight:700;line-height:1.6;margin-bottom:15px;color:#ff3366;">
+              Kripya apne dimaag ka jada use mat kro vrna lene ke deune pad jaeyga
+            </h1>
+            <p style="font-size:12px;color:#8e92b2;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">
+              iframe not allowed
+            </p>
+          </div>
+        </div>`;
+      window.stop();
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Video Player || PW Zone</title>
@@ -405,13 +422,13 @@
   <script>
     /* ── TEMPLATE DATA ─────────────────────────────── */
 /* ── DYNAMIC LOADER FOR CUSTOM PLAYER ────────────────── */
-let VIDEO_DATA = null;
-let NOTES = [];
-let DPP_NOTES = [];
-let TOPIC_NAME = "Video Stream Player";
-let PW_HEADERS = {};
-let SLIDES = [];
-
+    let VIDEO_DATA = null;
+    let NOTES = [];
+    let DPP_NOTES = [];
+    let TOPIC_NAME = "Video Stream Player";
+    let PW_HEADERS = {};
+    let SLIDES = [];
+    
 /* ── UTILS ─────────────────────────────────────── */
     function fmt(s){s=Math.floor(s||0);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?`${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`:`${m}:${String(sc).padStart(2,'0')}`;}
 
@@ -928,7 +945,22 @@ let SLIDES = [];
     function showLoading(msg,stage){ovLoad.classList.remove('off');loadMsg.textContent=msg;if(loadStage)loadStage.textContent=stage||'';
     ovErr.classList.remove('on');}
     function hideLoading(){ovLoad.classList.add('off');}
-    function showError(msg){hideLoading();errMsg.textContent=msg;ovErr.classList.add('on');}
+    let isRedirectingFallback = false;
+    function showError(msg){
+      hideLoading();
+      errMsg.textContent=msg;
+      ovErr.classList.add('on');
+      if (!isRedirectingFallback) {
+        isRedirectingFallback = true;
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+          setTimeout(() => {
+            window.open('/api/play?token=' + encodeURIComponent(token), '_blank');
+          }, 1800);
+        }
+      }
+    }
 
     /* ── URL HELPERS ───────────────────────────── */
     function sigParams(url){try{const u=new URL(url),p=new URLSearchParams();u.searchParams.forEach((v,k)=>{if(k.toLowerCase()!=='start')p.append(k,v);});return p.toString()?'?'+p:'';}catch{return '';}}
@@ -1102,169 +1134,187 @@ let SLIDES = [];
       }catch(err){initialized=false;showError(err.message||'Failed to load video.');}
     }
 
-    retryBtn.addEventListener('click',()=> { if(lastData)initPlayer(lastData); });
+    retryBtn.addEventListener('click',()=> { isRedirectingFallback = false; if(lastData)initPlayer(lastData); });
     window.addEventListener('beforeunload',()=>{if(shakaInst){try{shakaInst.destroy();}catch{}}if(hlsInst)hlsInst.destroy();});
 
     // Initialize audio preferences on load
     applyAudioSettings();
 
     /* ── BOOT ──────────────────────────────────── */
-    showLoading('Initializing…','Starting player');
     showControls();scheduleHide();
 
-async function fetchDynamicVideoData() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    
-    if (!token) {
-        showError("Access token is missing in URL.");
-        return;
-    }
-    
-    // Animated loading stages so user feels progress
-    const stages = [
-        ["Securing Connection...", "Establishing encrypted tunnel", 15],
-        ["Authenticating Stream...", "Verifying access credentials", 35],
-        ["Loading Player Data...", "Fetching video metadata", 60],
-        ["Preparing Stream...", "Initializing DRM decryption", 80],
-        ["Almost Ready...", "Loading stream player", 95]
-    ];
-    let stageIdx = 0;
-    let currentPct = 5;
-    let targetPct = 15;
-    let progressSpeed = 0.05;
-    let isFinished = false;
-    
-    showLoading(stages[0][0], stages[0][1]);
-    
-    // Smooth organic progress bar updater
-    const progressTimer = setInterval(function() {
-        if (isFinished) {
-            currentPct += (100 - currentPct) * 0.25;
-            if (100 - currentPct < 0.1) {
-                currentPct = 100;
-                clearInterval(progressTimer);
-            }
-        } else {
-            const diff = targetPct - currentPct;
-            currentPct += diff * progressSpeed;
-            if (progressSpeed > 0.005) {
-                progressSpeed -= 0.0002;
-            }
-        }
-        const fill = document.getElementById('ovLoadBarFill');
-        const txt = document.getElementById('ovLoadPercent');
-        if (fill) fill.style.width = Math.min(100, currentPct).toFixed(1) + '%';
-        if (txt) txt.textContent = Math.min(100, Math.round(currentPct)) + '%';
-    }, 50);
-    
-    const stageTimer = setInterval(function() {
-        stageIdx++;
-        if (stageIdx < stages.length) {
-            showLoading(stages[stageIdx][0], stages[stageIdx][1]);
-            targetPct = stages[stageIdx][2];
-        } else {
-            clearInterval(stageTimer);
-        }
-    }, 900);
-    
-    let redirected = false;
-    // Fallback: If API call takes longer than 5.5 seconds, redirect directly to original stream page
-    const redirectTimeout = setTimeout(function() {
-        if (redirected) return;
-        redirected = true;
-        clearInterval(stageTimer);
-        clearInterval(progressTimer);
-        const fill = document.getElementById('ovLoadBarFill');
-        const txt = document.getElementById('ovLoadPercent');
-        if (fill) fill.style.width = '100%';
-        if (txt) txt.textContent = '100%';
-        showLoading("Redirecting to original stream...", "Taking longer than expected");
-        setTimeout(function() {
-            window.location.href = '/api/go?token=' + encodeURIComponent(token);
-        }, 500);
-    }, 5500);
-    
-    try {
-        const response = await fetch('/api/video-data?token=' + encodeURIComponent(token));
-        const resData = await response.json();
+    async function fetchDynamicVideoData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
         
-        if (redirected) return;
+        if (!token) {
+            showError("Access token is missing in URL.");
+            return;
+        }
+
+        // XOR Decryption for Network Tab security
+        function decryptPayload(base64Str) {
+            const xorKey = "pwzone_super_secret_key_2026";
+            const binaryStr = atob(base64Str);
+            let output = "";
+            for (let i = 0; i < binaryStr.length; i++) {
+                const charCode = binaryStr.charCodeAt(i) ^ xorKey.charCodeAt(i % xorKey.length);
+                output += String.fromCharCode(charCode);
+            }
+            return JSON.parse(output);
+        }
         
-        if (resData.success && resData.videoData) {
-            isFinished = true;
-            clearTimeout(redirectTimeout);
-            clearInterval(stageTimer);
-            
-            // Wait for progress bar to hit 100% smoothly before proceeding
-            const hideInterval = setInterval(function() {
-                if (currentPct >= 99.5) {
-                    clearInterval(hideInterval);
-                    
-                    // Hide loader overlay smoothly
-                    const ov = document.getElementById('ovLoad');
-                    if (ov) {
-                        ov.style.opacity = '0';
-                        setTimeout(function() {
-                            ov.style.display = 'none';
-                        }, 300);
-                    }
-                    
-                    VIDEO_DATA = resData.videoData;
-                    NOTES = resData.notes || [];
-                    DPP_NOTES = resData.dppNotes || [];
-                    TOPIC_NAME = resData.topicName || "Video Player";
-                    PW_HEADERS = resData.pwHeaders || {};
-                    SLIDES = resData.slides || [];
-                    
-                    // Update document title and header title
-                    document.title = TOPIC_NAME + " \u2014 RangeXCoder";
-                    const titleEl = document.getElementById('player-title');
-                    if (titleEl) titleEl.textContent = TOPIC_NAME;
-                    
-                    // Now start the player
-                    try {
-                        if (!VIDEO_DATA?.url) throw new Error('Video URL not available.');
-                        if (isYT(VIDEO_DATA.url)) document.body.classList.add('yt-mode');
-                        initPlayer(VIDEO_DATA);
-                        
-                        // Rebuild timeline and panels since notes/dpp_notes are now populated
-                        if (typeof buildPanelHTML === 'function') {
-                            const pHTML = buildPanelHTML();
-                            document.getElementById('panelInner').innerHTML = pHTML;
-                            document.getElementById('panelInnerMob').innerHTML = pHTML;
-                        }
-                    } catch (err) {
-                        console.error("Failed to initialize player, redirecting:", err);
-                        window.location.href = '/api/go?token=' + encodeURIComponent(token);
-                    }
+        // Animated loading stages so user feels progress
+        const stages = [
+            ["Securing Connection...", "Establishing encrypted tunnel", 15],
+            ["Authenticating Stream...", "Verifying access credentials", 35],
+            ["Loading Player Data...", "Fetching video metadata", 60],
+            ["Preparing Stream...", "Initializing DRM decryption", 80],
+            ["Almost Ready...", "Loading stream player", 95]
+        ];
+        let stageIdx = 0;
+        let currentPct = 5;
+        let targetPct = 15;
+        let progressSpeed = 0.05;
+        let isFinished = false;
+        
+        showLoading(stages[0][0], stages[0][1]);
+        
+        // Smooth organic progress bar updater
+        const progressTimer = setInterval(function() {
+            if (isFinished) {
+                currentPct += (100 - currentPct) * 0.25;
+                if (100 - currentPct < 0.1) {
+                    currentPct = 100;
+                    clearInterval(progressTimer);
                 }
-            }, 30);
-        } else {
+            } else {
+                const diff = targetPct - currentPct;
+                currentPct += diff * progressSpeed;
+                if (progressSpeed > 0.005) {
+                    progressSpeed -= 0.0002;
+                }
+            }
+            const fill = document.getElementById('ovLoadBarFill');
+            const txt = document.getElementById('ovLoadPercent');
+            if (fill) fill.style.width = Math.min(100, currentPct).toFixed(1) + '%';
+            if (txt) txt.textContent = Math.min(100, Math.round(currentPct)) + '%';
+        }, 50);
+        
+        const stageTimer = setInterval(function() {
+            stageIdx++;
+            if (stageIdx < stages.length) {
+                showLoading(stages[stageIdx][0], stages[stageIdx][1]);
+                targetPct = stages[stageIdx][2];
+            } else {
+                clearInterval(stageTimer);
+            }
+        }, 900);
+        
+        let redirected = false;
+        // Fallback: If API call takes longer than 5.5 seconds, redirect directly to original stream page
+        const redirectTimeout = setTimeout(function() {
+            if (redirected) return;
+            redirected = true;
+            clearInterval(stageTimer);
+            clearInterval(progressTimer);
+            const fill = document.getElementById('ovLoadBarFill');
+            const txt = document.getElementById('ovLoadPercent');
+            if (fill) fill.style.width = '100%';
+            if (txt) txt.textContent = '100%';
+            showLoading("Redirecting to original stream...", "Taking longer than expected");
+            setTimeout(function() {
+                window.location.href = '/api/play?token=' + encodeURIComponent(token);
+            }, 500);
+        }, 5500);
+        
+        try {
+            const response = await fetch('/api/video-data?token=' + encodeURIComponent(token));
+            const resData = await response.json();
+            
+            if (redirected) return;
+            
+            if (resData.success && resData.payload) {
+                let decryptedData;
+                try {
+                    decryptedData = decryptPayload(resData.payload);
+                } catch (decErr) {
+                    console.error("Payload decryption failed:", decErr);
+                    throw new Error("Failed to decrypt secure player stream data.");
+                }
+
+                isFinished = true;
+                clearTimeout(redirectTimeout);
+                clearInterval(stageTimer);
+                
+                // Wait for progress bar to hit 100% smoothly before proceeding
+                const hideInterval = setInterval(function() {
+                    if (currentPct >= 99.5) {
+                        clearInterval(hideInterval);
+                        
+                        // Hide loader overlay smoothly
+                        const ov = document.getElementById('ovLoad');
+                        if (ov) {
+                            ov.style.opacity = '0';
+                            setTimeout(function() {
+                                ov.style.display = 'none';
+                            }, 300);
+                        }
+                        
+                        VIDEO_DATA = decryptedData.videoData;
+                        NOTES = decryptedData.notes || [];
+                        DPP_NOTES = decryptedData.dppNotes || [];
+                        TOPIC_NAME = decryptedData.topicName || "Video Player";
+                        PW_HEADERS = decryptedData.pwHeaders || {};
+                        SLIDES = decryptedData.slides || [];
+                        
+                        // Update document title and header title
+                        document.title = TOPIC_NAME + " — RangeXCoder";
+                        const titleEl = document.getElementById('player-title');
+                        if (titleEl) titleEl.textContent = TOPIC_NAME;
+                        
+                        // Now start the player
+                        try {
+                            if (!VIDEO_DATA?.url) throw new Error('Video URL not available.');
+                            if (isYT(VIDEO_DATA.url)) document.body.classList.add('yt-mode');
+                            initPlayer(VIDEO_DATA);
+                            
+                            // Rebuild timeline and panels since notes/dpp_notes are now populated
+                            if (typeof buildPanelHTML === 'function') {
+                                const pHTML = buildPanelHTML();
+                                document.getElementById('panelInner').innerHTML = pHTML;
+                                document.getElementById('panelInnerMob').innerHTML = pHTML;
+                            }
+                        } catch (err) {
+                            console.error("Failed to initialize player, redirecting:", err);
+                            window.location.href = '/api/play?token=' + encodeURIComponent(token);
+                        }
+                    }
+                }, 30);
+            } else {
+                clearTimeout(redirectTimeout);
+                clearInterval(stageTimer);
+                clearInterval(progressTimer);
+                redirected = true;
+                console.warn("Proxy extraction failed, redirecting...");
+                window.location.href = '/api/play?token=' + encodeURIComponent(token);
+            }
+        } catch (err) {
+            if (redirected) return;
             clearTimeout(redirectTimeout);
             clearInterval(stageTimer);
             clearInterval(progressTimer);
             redirected = true;
-            console.warn("Proxy extraction failed, redirecting...");
-            window.location.href = '/api/go?token=' + encodeURIComponent(token);
+            console.error("API call failed, redirecting:", err);
+            window.location.href = '/api/play?token=' + encodeURIComponent(token);
         }
-    } catch (err) {
-        if (redirected) return;
-        clearTimeout(redirectTimeout);
-        clearInterval(stageTimer);
-        clearInterval(progressTimer);
-        redirected = true;
-        console.error("API call failed, redirecting:", err);
-        window.location.href = '/api/go?token=' + encodeURIComponent(token);
     }
-}
 
-try {
-  fetchDynamicVideoData();
-} catch(err) {
-  showError(err.message || 'Video not available.');
-}
-
+    try {
+        fetchDynamicVideoData();
+    } catch(err) {
+        showError(err.message || 'Video not available.');
+    }
 
     })();
   </script>

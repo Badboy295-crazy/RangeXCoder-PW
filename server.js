@@ -14,6 +14,11 @@ const wss = new WebSocket.Server({ server });
 
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+    next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // New auth token provided by user
@@ -34,8 +39,34 @@ const COOKIE_HEADERS = {
 
 // ================= COMMUNITY DATABASE & CONFIGURATION =================
 const POSTS_FILE = path.join(__dirname, 'posts.json');
-const ADMIN_PASSWORD = "pwzoneadmin123";
+const ADMIN_PASSWORD = "Amber708";
 const ADMIN_TOKEN = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest('hex');
+
+// Universal Response Obfuscation for Network Tab security
+const OBFUSCATION_KEY = "pwzone_super_secret_key_2026";
+function encryptPayload(data) {
+    const jsonStr = JSON.stringify(data);
+    let xored = "";
+    for (let i = 0; i < jsonStr.length; i++) {
+        const charCode = jsonStr.charCodeAt(i) ^ OBFUSCATION_KEY.charCodeAt(i % OBFUSCATION_KEY.length);
+        xored += String.fromCharCode(charCode);
+    }
+    return Buffer.from(xored, 'binary').toString('base64');
+}
+
+function sendEncrypted(res, data) {
+    res.json({
+        success: true,
+        payload: encryptPayload(data)
+    });
+}
+
+function sendEncryptedError(res, statusCode, message) {
+    res.status(statusCode).json({
+        success: false,
+        payload: encryptPayload({ message })
+    });
+}
 
 function getPosts() {
     try {
@@ -79,10 +110,10 @@ wss.on('connection', (ws) => {
 app.get('/api/batches', async (req, res) => {
     try {
         const response = await axios.get("https://rarestudy.github.io/rarestudy/batches.json?v=1781102563428", { timeout: 5000 });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch batches error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch batches from source URL" });
+        sendEncryptedError(res, 500, "Failed to fetch batches from source URL");
     }
 });
 
@@ -91,10 +122,10 @@ app.get('/api/batch-details', async (req, res) => {
     const { batchId } = req.query;
     try {
         const response = await axios.get(`https://api.penpencil.co/v3/batches/${batchId}/details`, { headers: HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch batch details error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch batch details" });
+        sendEncryptedError(res, 500, "Failed to fetch batch details");
     }
 });
 
@@ -104,10 +135,10 @@ app.get('/api/todays-schedule', async (req, res) => {
     try {
         // Redirecting to Penpencil API for dynamic schedule
         const response = await axios.get(`https://api.penpencil.co/v2/batches/${batchId}/todays-schedule`, { headers: HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch todays schedule error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch schedule" });
+        sendEncryptedError(res, 500, "Failed to fetch schedule");
     }
 });
 
@@ -117,10 +148,10 @@ app.get('/api/topics', async (req, res) => {
     try {
         const targetURL = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/topics?page=${page || 1}`;
         const response = await axios.get(targetURL, { headers: HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch topics error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch topics" });
+        sendEncryptedError(res, 500, "Failed to fetch topics");
     }
 });
 
@@ -130,10 +161,10 @@ app.get('/api/contents', async (req, res) => {
     try {
         const targetURL = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=${page || 1}&contentType=${contentType}&tag=${tag}`;
         const response = await axios.get(targetURL, { headers: HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch contents error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch contents" });
+        sendEncryptedError(res, 500, "Failed to fetch contents");
     }
 });
 
@@ -143,10 +174,10 @@ app.get('/api/dpp-tests', async (req, res) => {
     try {
         const targetURL = `https://api.penpencil.co/v3/test-service/tests/dpp?batchId=${batchId}&batchSubjectId=${batchSubjectId}&chapterId=${chapterId}&isSubjective=false&page=${page || 1}`;
         const response = await axios.get(targetURL, { headers: HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch dpp tests error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch DPP tests" });
+        sendEncryptedError(res, 500, "Failed to fetch DPP tests");
     }
 });
 
@@ -156,10 +187,10 @@ app.get('/api/get-video-url', async (req, res) => {
     try {
         const targetURL = `https://www.squidstudy.eu.org/api/get-video-url?batchId=${batchId}&subjectId=${subjectId}&childId=${childId}`;
         const response = await axios.get(targetURL, { headers: COOKIE_HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch video URL error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch legacy video URL" });
+        sendEncryptedError(res, 500, "Failed to fetch legacy video URL");
     }
 });
 
@@ -168,10 +199,10 @@ app.get('/api/video-timeline', async (req, res) => {
     const { batchId, subjectId, videoId } = req.query;
     try {
         const response = await axios.get(`https://www.squidstudy.eu.org/api/timeline?batchId=${batchId}&subjectId=${subjectId}&videoId=${videoId}`, { headers: COOKIE_HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch video timeline error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch timeline slides" });
+        sendEncryptedError(res, 500, "Failed to fetch timeline slides");
     }
 });
 
@@ -180,10 +211,10 @@ app.get('/api/comments', async (req, res) => {
     const { videoId, page } = req.query;
     try {
         const response = await axios.get(`https://www.squidstudy.eu.org/api/comments?videoId=${videoId}&page=${page || 1}`, { headers: COOKIE_HEADERS });
-        res.json(response.data);
+        sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch comments error:", error.message);
-        res.status(500).json({ success: false, message: "Failed to fetch comments stack" });
+        sendEncryptedError(res, 500, "Failed to fetch comments stack");
     }
 });
 
@@ -245,13 +276,13 @@ app.get('/api/get-token', (req, res) => {
 app.get('/api/decrypt-token', (req, res) => {
     const { token } = req.query;
     if (!token) {
-        return res.status(400).json({ success: false, message: "Token is required" });
+        return sendEncryptedError(res, 400, "Token is required");
     }
     const decryptedUrl = decrypt(token);
     if (!decryptedUrl) {
-        return res.status(400).json({ success: false, message: "Invalid or expired token" });
+        return sendEncryptedError(res, 400, "Invalid or expired token");
     }
-    res.json({ success: true, url: decryptedUrl });
+    sendEncrypted(res, { url: decryptedUrl });
 });
 
 // Instant redirect
@@ -396,17 +427,22 @@ app.get('/api/video-data', async (req, res) => {
         }
 
         const data = await getPWVideoData(batchId, subjectId, scheduleId, tag);
+        const encrypted = encryptPayload(data);
         res.json({
             success: true,
-            ...data
+            payload: encrypted
         });
 
     } catch (error) {
         console.error("Video data extraction failed, returning fallback:", error.message);
+        const fallbackData = {
+            fallbackUrl: decryptedUrl
+        };
+        const encryptedFallback = encryptPayload(fallbackData);
         res.json({
             success: false,
             message: error.message,
-            fallbackUrl: decryptedUrl
+            payload: encryptedFallback
         });
     }
 });
@@ -432,14 +468,14 @@ app.get('/get-test-solution-video', async (req, res) => {
 
 // GET posts
 app.get('/api/posts', (req, res) => {
-    res.json({ success: true, posts: getPosts() });
+    sendEncrypted(res, { posts: getPosts() });
 });
 
 // POST post
 app.post('/api/posts', (req, res) => {
     const { name, userClass, content, imageLink } = req.body;
     if (!name || !content) {
-        return res.status(400).json({ success: false, message: "Name and content are required." });
+        return sendEncryptedError(res, 400, "Name and content are required.");
     }
     const posts = getPosts();
     const newPost = {
@@ -457,19 +493,19 @@ app.post('/api/posts', (req, res) => {
     savePosts(posts);
     
     broadcast({ type: 'new_post', data: newPost });
-    res.json({ success: true, post: newPost });
+    sendEncrypted(res, { post: newPost });
 });
 
 // POST like toggler
 app.post('/api/posts/like', (req, res) => {
     const { postId, clientId } = req.body;
     if (!postId || !clientId) {
-        return res.status(400).json({ success: false, message: "postId and clientId are required." });
+        return sendEncryptedError(res, 400, "postId and clientId are required.");
     }
     const posts = getPosts();
     const post = posts.find(p => p.id === postId);
     if (!post) {
-        return res.status(404).json({ success: false, message: "Post not found." });
+        return sendEncryptedError(res, 404, "Post not found.");
     }
     
     if (!post.likedBy) post.likedBy = [];
@@ -483,19 +519,19 @@ app.post('/api/posts/like', (req, res) => {
     savePosts(posts);
     
     broadcast({ type: 'like_update', data: { postId: post.id, likes: post.likes, likedBy: post.likedBy } });
-    res.json({ success: true, likes: post.likes, likedBy: post.likedBy });
+    sendEncrypted(res, { likes: post.likes, likedBy: post.likedBy });
 });
 
 // POST comment
 app.post('/api/posts/comment', (req, res) => {
     const { postId, name, userClass, content } = req.body;
     if (!postId || !name || !content) {
-        return res.status(400).json({ success: false, message: "postId, name and content are required." });
+        return sendEncryptedError(res, 400, "postId, name and content are required.");
     }
     const posts = getPosts();
     const post = posts.find(p => p.id === postId);
     if (!post) {
-        return res.status(404).json({ success: false, message: "Post not found." });
+        return sendEncryptedError(res, 404, "Post not found.");
     }
     
     const comment = {
@@ -511,16 +547,16 @@ app.post('/api/posts/comment', (req, res) => {
     savePosts(posts);
     
     broadcast({ type: 'new_comment', data: { postId: post.id, comment: comment } });
-    res.json({ success: true, comment: comment });
+    sendEncrypted(res, { comment: comment });
 });
 
 // POST admin auth check
 app.post('/api/admin/auth', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
-        res.json({ success: true, token: ADMIN_TOKEN });
+        sendEncrypted(res, { token: ADMIN_TOKEN });
     } else {
-        res.status(401).json({ success: false, message: "Invalid administrator password." });
+        sendEncryptedError(res, 401, "Invalid administrator password.");
     }
 });
 
@@ -528,18 +564,18 @@ app.post('/api/admin/auth', (req, res) => {
 app.post('/api/admin/delete-post', (req, res) => {
     const { postId, token } = req.body;
     if (token !== ADMIN_TOKEN) {
-        return res.status(403).json({ success: false, message: "Unauthorized access." });
+        return sendEncryptedError(res, 403, "Unauthorized access.");
     }
     let posts = getPosts();
     const exists = posts.some(p => p.id === postId);
     if (!exists) {
-        return res.status(404).json({ success: false, message: "Post not found." });
+        return sendEncryptedError(res, 404, "Post not found.");
     }
     posts = posts.filter(p => p.id !== postId);
     savePosts(posts);
     
     broadcast({ type: 'delete_post', data: { postId } });
-    res.json({ success: true });
+    sendEncrypted(res, {});
 });
 
 // Serve HTML routing

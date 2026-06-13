@@ -1,55 +1,11 @@
 [
     {
-        "id": "4d3d873d-666d-4454-87cd-75481173d448",
+        "id": "6b68e0d7-b4af-4e7d-93c3-9df3f70e8bb9",
         "name": "bhoot",
         "class": "JEE Aspirant",
-        "content": "hloo",
+        "content": "new",
         "imageLink": "",
-        "timestamp": "2026-06-13T16:13:09.272Z",
-        "likes": 0,
-        "likedBy": [],
-        "comments": []
-    },
-    {
-        "id": "b83610bc-5274-47e1-a9af-c284058d051c",
-        "name": "bhoot",
-        "class": "JEE Aspirant",
-        "content": "kyaa",
-        "imageLink": "",
-        "timestamp": "2026-06-13T15:57:57.952Z",
-        "likes": 0,
-        "likedBy": [],
-        "comments": [
-            {
-                "id": "fb41e445-b9eb-461a-97fb-0fc8802e72b6",
-                "name": "bhoot",
-                "class": "JEE Aspirant",
-                "content": "noo",
-                "timestamp": "2026-06-13T15:58:06.861Z"
-            },
-            {
-                "id": "e76e3ccc-7d0d-4a0c-ae20-a2d3b410d5a9",
-                "name": "bhoot",
-                "class": "JEE Aspirant",
-                "content": "kyaa baat hai bhai",
-                "timestamp": "2026-06-13T15:58:21.688Z"
-            },
-            {
-                "id": "4ab382dc-5b15-444a-bf66-df53d0373526",
-                "name": "bhoot",
-                "class": "JEE Aspirant",
-                "content": "hloo",
-                "timestamp": "2026-06-13T16:13:02.668Z"
-            }
-        ]
-    },
-    {
-        "id": "be0e77b2-750b-4160-b80b-dda2badf1806",
-        "name": "Anonymous",
-        "class": "JEE Aspirant",
-        "content": "hlooo how are you u all",
-        "imageLink": "",
-        "timestamp": "2026-06-13T15:57:31.518Z",
+        "timestamp": "2026-06-13T16:21:27.860Z",
         "likes": 0,
         "likedBy": [],
         "comments": []

@@ -97,7 +97,7 @@ const FULL_TIMELINE_DATA = [
 ];
 // ======================================================================================
 
-app.get('/api/batches', async (req, res) => {
+app.get(['/api/batches', '/api/batche'], async (req, res) => {
     try {
         const response = await axios.get("https://rarestudy.github.io/rarestudy/batches.json?v=1779438852798", { timeout: 3000 });
         res.json(response.data);

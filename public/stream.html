@@ -563,7 +563,7 @@
                         const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&scheduleId=${item._id}&tag=${CHAPTER_ID}`);
                         const resData = await response.json();
                         if (resData.success && resData.token) {
-                            window.open(`/watch?token=${encodeURIComponent(resData.token)}`, '_blank');
+                            window.location.href = `/watch?token=${encodeURIComponent(resData.token)}`;
                         }
                     } catch (error) {
                         console.error("Failed to generate stream token:", error);

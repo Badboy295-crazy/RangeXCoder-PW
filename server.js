@@ -107,7 +107,7 @@ wss.on('connection', (ws) => {
 // ================= EXISTING LOGIC & APIS =================
 
 // Fetch all batches
-app.get('/api/batches', async (req, res) => {
+app.get(['/api/batches', '/api/batche'], async (req, res) => {
     try {
         const response = await axios.get("https://rarestudy.github.io/rarestudy/batches.json?v=1781369266137", { timeout: 5000 });
         sendEncrypted(res, response.data);

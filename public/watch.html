@@ -953,16 +953,21 @@
     let isRedirectingFallback = false;
     function showError(msg){
       hideLoading();
-      errMsg.textContent=msg;
-      ovErr.classList.add('on');
+      console.error("Player error:", msg);
       if (!isRedirectingFallback) {
-        isRedirectingFallback = true;
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         if (token) {
-          setTimeout(() => {
-            window.open('/api/play?token=' + encodeURIComponent(token), '_blank');
-          }, 1800);
+          isRedirectingFallback = true;
+          window.open('/api/play?token=' + encodeURIComponent(token), '_blank');
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = '/';
+          }
+        } else {
+          errMsg.textContent = msg;
+          ovErr.classList.add('on');
         }
       }
     }
@@ -1179,6 +1184,15 @@
             }
             return JSON.parse(output);
         }
+
+        function triggerSilentFallback(tkn) {
+            window.open('/api/play?token=' + encodeURIComponent(tkn), '_blank');
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        }
         
         // Animated loading stages so user feels progress
         const stages = [
@@ -1238,10 +1252,7 @@
             const txt = document.getElementById('ovLoadPercent');
             if (fill) fill.style.width = '100%';
             if (txt) txt.textContent = '100%';
-            showLoading("Redirecting to original stream...", "Taking longer than expected");
-            setTimeout(function() {
-                window.location.href = '/api/play?token=' + encodeURIComponent(token);
-            }, 500);
+            triggerSilentFallback(token);
         }, 5500);
         
         try {
@@ -1303,7 +1314,7 @@
                             }
                         } catch (err) {
                             console.error("Failed to initialize player, redirecting:", err);
-                            window.location.href = '/api/play?token=' + encodeURIComponent(token);
+                            triggerSilentFallback(token);
                         }
                     }
                 }, 30);
@@ -1313,7 +1324,7 @@
                 clearInterval(progressTimer);
                 redirected = true;
                 console.warn("Proxy extraction failed, redirecting...");
-                window.location.href = '/api/play?token=' + encodeURIComponent(token);
+                triggerSilentFallback(token);
             }
         } catch (err) {
             if (redirected) return;
@@ -1322,7 +1333,7 @@
             clearInterval(progressTimer);
             redirected = true;
             console.error("API call failed, redirecting:", err);
-            window.location.href = '/api/play?token=' + encodeURIComponent(token);
+            triggerSilentFallback(token);
         }
     }
 

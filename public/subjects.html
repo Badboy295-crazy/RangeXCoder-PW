@@ -686,7 +686,7 @@
                 const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${subjectId}&scheduleId=${scheduleId}&tag=${chapterId}`);
                 const resData = await response.json();
                 if (resData.success && resData.token) {
-                    window.open(`/watch?token=${encodeURIComponent(resData.token)}`, '_blank');
+                    window.location.href = `/watch?token=${encodeURIComponent(resData.token)}`;
                 } else {
                     alert("Unable to fetch live video stream token.");
                 }

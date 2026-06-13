@@ -652,7 +652,11 @@
                 updLoader('Rendering batch system grids...', 90);
                 const resData = await response.json();
                 const data = decryptPayload(resData.payload);
-                allBatches = data.batches || data || [];
+                const batchesList = data.batches || data || [];
+                if (!Array.isArray(batchesList)) {
+                    throw new Error("Batches payload is not a valid array.");
+                }
+                allBatches = batchesList;
                 renderSystem();
                 hideLoader();
             } catch (error) {

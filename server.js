@@ -681,7 +681,7 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     }
     const uuid = uuidMatch[1];
     
-    const constructedHlsUrl = `https://stream.pimaxer.in/${uuid}/master.m3u8`;
+    const constructedHlsUrl = `/stream-proxy/${uuid}/master.m3u8`;
     
     return {
         videoData: {
@@ -771,6 +771,53 @@ app.get('/get-test-solution-video', async (req, res) => {
     } catch (error) {
         console.error("Solution video proxy failed, rendering error page:", error.message);
         renderConnectionErrorPage(res);
+    }
+});
+
+// Proxy dynamic HLS stream files and video segments from stream.pimaxer.in
+app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
+    const uuid = req.params[0];
+    const extraPath = req.params[1].split('?')[0];
+    const targetUrl = `https://stream.pimaxer.in/${uuid}/${req.params[1]}`;
+    
+    try {
+        const isM3U8 = extraPath.endsWith('.m3u8') || extraPath.includes('m3u8');
+        
+        if (isM3U8) {
+            const response = await axios.get(targetUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                },
+                responseType: 'text'
+            });
+            let playlistText = response.data;
+            if (typeof playlistText === 'string') {
+                const hostUrl = req.protocol + '://' + req.get('host');
+                // Rewrite absolute stream URLs if any
+                playlistText = playlistText.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
+            }
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            res.send(playlistText);
+        } else {
+            // Fetch and pipe binary files (.ts, key files, etc.)
+            const response = await axios.get(targetUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                },
+                responseType: 'stream'
+            });
+            
+            if (response.headers['content-type']) {
+                res.setHeader('Content-Type', response.headers['content-type']);
+            }
+            if (response.headers['content-length']) {
+                res.setHeader('Content-Length', response.headers['content-length']);
+            }
+            response.data.pipe(res);
+        }
+    } catch (error) {
+        console.error("Stream proxy fetch failed:", error.message);
+        res.status(404).send("Stream resource not found.");
     }
 });
 

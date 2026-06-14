@@ -698,8 +698,15 @@
 
                     const clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
                     
-                    card.className = 'lecture-card clickable';
-                    card.setAttribute('onclick', clickFnStr);
+                    if (isLive) {
+                        card.className = 'lecture-card clickable';
+                        card.setAttribute('onclick', clickFnStr);
+                    } else {
+                        card.className = 'lecture-card';
+                        card.style.cursor = 'default';
+                        card.style.opacity = '0.75';
+                        card.style.pointerEvents = 'none'; // Ensure no touch event fires at all
+                    }
 
 
                     let previewUrl = avatarUrl;

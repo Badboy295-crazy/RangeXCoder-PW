@@ -641,8 +641,14 @@ app.get('/schedule-details', async (req, res) => {
             return res.status(400).send("Invalid or expired access token.");
         }
     } else {
-        const queryParams = new URLSearchParams(req.query).toString();
-        targetUrl = `https://stream.testuk.org/schedule-details?${queryParams}`;
+        if (Object.keys(req.query).length > 0) {
+            const queryParams = new URLSearchParams(req.query).toString();
+            const rawUrl = `https://stream.testuk.org/schedule-details?${queryParams}`;
+            const secureToken = encrypt(rawUrl);
+            return res.redirect(`/schedule-details?token=${encodeURIComponent(secureToken)}`);
+        } else {
+            return res.status(400).send("Missing query parameters or access token.");
+        }
     }
 
     try {
@@ -652,21 +658,38 @@ app.get('/schedule-details', async (req, res) => {
             }
         });
         
-        let html = response.data;
-        const hostUrl = req.protocol + '://' + req.get('host');
-        if (typeof html === 'string') {
-            html = encryptUrlsInHtml(html, hostUrl);
-            html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
-            html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
-                const expires = Date.now() + 6 * 3600 * 1000;
-                const streamToken = encrypt(`${uuid}:${expires}`);
-                return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
-            });
-            html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
+        const contentType = response.headers['content-type'] || '';
+        const finalUrl = response.request.res.responseUrl;
+
+        if (finalUrl && finalUrl.includes('/media/')) {
+            const hostUrl = req.protocol + '://' + req.get('host');
+            const mediaPath = finalUrl.substring(finalUrl.indexOf('/media/'));
+            return res.redirect(`${hostUrl}${mediaPath}`);
         }
-        res.send(html);
+
+        if (contentType.includes('text/html')) {
+            let html = response.data;
+            const hostUrl = req.protocol + '://' + req.get('host');
+            if (typeof html === 'string') {
+                html = encryptUrlsInHtml(html, hostUrl);
+                html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+                html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
+                    const expires = Date.now() + 6 * 3600 * 1000;
+                    const streamToken = encrypt(`${uuid}:${expires}`);
+                    return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+                });
+                html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
+            }
+            res.send(html);
+        } else {
+            res.redirect(targetUrl);
+        }
     } catch (error) {
-        console.error("schedule-details proxy failed, redirecting to target url:", error.message);
+        console.error("schedule-details proxy failed, checking fallback:", error.message);
+        if (targetUrl && targetUrl.includes("tap=video")) {
+            console.log("Serving watch.html as local fallback for video request");
+            return res.sendFile(path.join(__dirname, 'public', 'watch.html'));
+        }
         if (targetUrl) {
             return res.redirect(targetUrl);
         }

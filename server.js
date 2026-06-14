@@ -575,13 +575,58 @@ app.get('/api/play', async (req, res) => {
             }
             res.send(html);
         } else {
-            const hostUrl = req.protocol + '://' + req.get('host');
-            const localFinalUrl = getLocalRouteForUrl(finalUrl, hostUrl);
-            res.redirect(localFinalUrl);
+            res.redirect(decryptedUrl);
         }
     } catch (error) {
         console.error("Secure stream proxy failed, redirecting to local fallback URL:", error.message);
-        res.redirect(localFallbackUrl);
+        if (decryptedUrl.includes("tap=video")) {
+            try {
+                const parsedUrl = new URL(decryptedUrl);
+                const batchId = parsedUrl.searchParams.get('batchId');
+                const subjectId = parsedUrl.searchParams.get('subjectId');
+                const scheduleId = parsedUrl.searchParams.get('scheduleId');
+                const tag = parsedUrl.searchParams.get('tag');
+
+                if (batchId && subjectId && scheduleId) {
+                    const data = await getPWVideoData(batchId, subjectId, scheduleId, tag);
+                    const streamUrl = data.videoData.url;
+                    const title = data.topicName || "Stream Player";
+                    
+                    return res.send(`
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>${title} — PW Zone</title>
+                            <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+                            <style>
+                                body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; }
+                                video { width: 100%; height: 100%; object-fit: contain; }
+                            </style>
+                        </head>
+                        <body>
+                            <video id="video" controls autoplay></video>
+                            <script>
+                                const video = document.getElementById('video');
+                                const streamUrl = '${streamUrl}';
+                                if (Hls.isSupported()) {
+                                    const hls = new Hls();
+                                    hls.loadSource(streamUrl);
+                                    hls.attachMedia(video);
+                                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                    video.src = streamUrl;
+                                }
+                            </script>
+                        </body>
+                        </html>
+                    `);
+                }
+            } catch (fallbackErr) {
+                console.error("Failed to render local fallback HLS player:", fallbackErr.message);
+            }
+        }
+        res.redirect(decryptedUrl);
     }
 });
 
@@ -621,7 +666,10 @@ app.get('/schedule-details', async (req, res) => {
         }
         res.send(html);
     } catch (error) {
-        console.error("schedule-details proxy failed, rendering error page:", error.message);
+        console.error("schedule-details proxy failed, redirecting to target url:", error.message);
+        if (targetUrl) {
+            return res.redirect(targetUrl);
+        }
         renderConnectionErrorPage(res);
     }
 });
@@ -662,7 +710,10 @@ app.get('/get-dpp-quiz', async (req, res) => {
         }
         res.send(html);
     } catch (error) {
-        console.error("get-dpp-quiz proxy failed, rendering error page:", error.message);
+        console.error("get-dpp-quiz proxy failed, redirecting to target url:", error.message);
+        if (targetUrl) {
+            return res.redirect(targetUrl);
+        }
         renderConnectionErrorPage(res);
     }
 });

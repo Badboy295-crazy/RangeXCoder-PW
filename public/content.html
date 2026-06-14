@@ -222,7 +222,7 @@
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 22px;
+            font-size: 16px;
             margin-right: 12px;
             color: #ffffff;
             box-shadow: 0 4px 15px rgba(92, 91, 229, 0.4);
@@ -306,9 +306,9 @@
             <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
                 <div class="back-btn" id="customBackLinkBtn"><i class="fas fa-chevron-left"></i></div>
                 <div class="subject-headline-title" id="subjectHeaderTitle">Loading Subject Engine...</div>
-                <div class="header-brand" style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted);">
-                    <div class="logo-box" style="width: 22px; height: 22px; font-size: 11px; margin-right: 0; box-shadow: none;">PW</div>
-                    PW <span class="logo-highlight">Zone</span>
+                <div class="header-brand" style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted);">
+                    <div class="logo-box" style="width: 22px; height: 22px; font-size: 10px; margin-right: 0; box-shadow: none; display: flex; align-items: center; justify-content: center;">PW</div>
+                    <span class="logo-highlight" style="margin-left: 2px;">Zone</span>
                 </div>
             </div>
         </div>
@@ -476,10 +476,13 @@
         document.getElementById('customBackLinkBtn').onclick = () => {
             window.location.href = `/subjects.html?batchId=${BATCH_ID}&batchName=${encodeURIComponent(BATCH_NAME)}`;
         };
-
+        
         let currentPage = 1;
         let hasMorePagesData = true;
         let isFetchingPageLock = false;
+        let globalTotalVideos = 0;
+        let globalTotalNotes = 0;
+        let globalTotalExercises = 0;
 
         async function fetchNextTopicsChunk() {
             if (isFetchingPageLock || !hasMorePagesData) return;
@@ -518,8 +521,8 @@
                      allContentCard.innerHTML = `
                          <div class="topic-left-layout-node">
                              <div class="topic-primary-title-h2" style="color: var(--accent-purple); font-weight: 800;">All Content</div>
-                             <div class="topic-metadata-sub-text">
-                                 <i class="fas fa-layer-group" style="color:var(--accent-purple);"></i> View combined lectures & notes from all active chapters
+                             <div class="topic-metadata-sub-text" id="all-content-meta">
+                                 <i class="fas fa-layer-group" style="color:var(--accent-purple);"></i> Calculating totals...
                              </div>
                          </div>
                          <div class="topic-right-action-node"><i class="fas fa-chevron-right" style="color: var(--accent-purple);"></i></div>
@@ -546,6 +549,10 @@
                     };
 
                     const videosCount = topic.videos !== undefined ? topic.videos : (topic.lectureVideos || 0);
+                    globalTotalVideos += videosCount;
+                    globalTotalNotes += (topic.notes || 0);
+                    globalTotalExercises += (topic.exercises || 0);
+
                     rowDiv.innerHTML = `
                         <div class="topic-left-layout-node">
                             <div class="topic-primary-title-h2">${topic.name}</div>
@@ -557,6 +564,16 @@
                     `;
                     fragment.appendChild(rowDiv);
                 });
+
+                // Update the All Content metadata text
+                const allMetaEl = document.getElementById('all-content-meta');
+                if (allMetaEl) {
+                    allMetaEl.innerHTML = `
+                        <i class="fas fa-play-circle" style="color:var(--accent-purple);"></i> ${globalTotalVideos} Lectures &nbsp;|&nbsp; 
+                        <i class="far fa-file-alt" style="color:var(--accent-purple);"></i> ${globalTotalNotes} Class Notes &nbsp;|&nbsp; 
+                        <i class="fas fa-tasks" style="color:var(--accent-purple);"></i> ${globalTotalExercises} Exercises
+                    `;
+                }
 
                 container.appendChild(fragment);
                 currentPage++;

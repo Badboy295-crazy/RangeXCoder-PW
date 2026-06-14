@@ -312,9 +312,10 @@
   <div class="ov" id="ovLoad">
     <div class="load-card">
       <div class="spinner"></div>
-      <div class="load-title">PW Zone</div>
+      <div class="load-title">PW<span style="color: var(--accent); margin-left: 4px;">Zone</span></div>
       <div id="loadMsg">Securing Connection...</div>
       <div id="loadStage">Initializing DRM Stream Node</div>
+      <div style="font-size: 11px; color: var(--accent); margin-top: -6px; font-weight: 600;">Wait 15 sec to load video</div>
       <div class="progress-container">
         <div class="progress-bar-fill" id="ovLoadBarFill"></div>
       </div>
@@ -1278,7 +1279,7 @@
         if (!playbackStarted && (vid.paused || vid.currentTime === 0)) {
           showPlaybackFallbackModal();
         }
-      }, 12000);
+      }, 15000);
       try{
         if(isNativeOnly){
           if(isYT(data.url)){initYT(data.url);return;}
@@ -1387,7 +1388,7 @@
         }, 900);
         
         let redirected = false;
-        // Fallback: If API call takes longer than 12 seconds, show fallback modal
+        // Fallback: If API call takes longer than 15 seconds, show fallback modal
         const redirectTimeout = setTimeout(function() {
             if (redirected) return;
             redirected = true;
@@ -1407,7 +1408,7 @@
             }
             
             showPlaybackFallbackModal();
-        }, 12000);
+        }, 15000);
         
         try {
             const response = await fetch('/api/video-data?token=' + encodeURIComponent(token));

@@ -540,6 +540,7 @@ app.get('/api/play', async (req, res) => {
             if (typeof html === 'string') {
                 html = encryptUrlsInHtml(html, hostUrl);
                 html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+                html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
             }
             res.send(html);
         } else {
@@ -580,6 +581,7 @@ app.get('/schedule-details', async (req, res) => {
         if (typeof html === 'string') {
             html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+            html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
         }
         res.send(html);
     } catch (error) {
@@ -615,6 +617,7 @@ app.get('/get-dpp-quiz', async (req, res) => {
         if (typeof html === 'string') {
             html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+            html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
         }
         res.send(html);
     } catch (error) {
@@ -766,6 +769,7 @@ app.get('/get-test-solution-video', async (req, res) => {
             const hostUrl = req.protocol + '://' + req.get('host');
             html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+            html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
         }
         res.send(html);
     } catch (error) {
@@ -777,8 +781,10 @@ app.get('/get-test-solution-video', async (req, res) => {
 // Proxy dynamic HLS stream files and video segments from stream.pimaxer.in
 app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
     const uuid = req.params[0];
-    const extraPath = req.params[1].split('?')[0];
-    const targetUrl = `https://stream.pimaxer.in/${uuid}/${req.params[1]}`;
+    const subPath = req.params[1];
+    const extraPath = subPath.split('?')[0];
+    const queryParams = new URLSearchParams(req.query).toString();
+    const targetUrl = `https://stream.pimaxer.in/${uuid}/${subPath}${queryParams ? '?' + queryParams : ''}`;
     
     try {
         const isM3U8 = extraPath.endsWith('.m3u8') || extraPath.includes('m3u8');
@@ -799,12 +805,12 @@ app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
             res.send(playlistText);
         } else {
-            // Fetch and pipe binary files (.ts, key files, etc.)
+            // Fetch and return binary files (.ts, etc.) using arraybuffer for reliability
             const response = await axios.get(targetUrl, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 },
-                responseType: 'stream'
+                responseType: 'arraybuffer'
             });
             
             if (response.headers['content-type']) {
@@ -813,11 +819,31 @@ app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
             if (response.headers['content-length']) {
                 res.setHeader('Content-Length', response.headers['content-length']);
             }
-            response.data.pipe(res);
+            res.send(response.data);
         }
     } catch (error) {
         console.error("Stream proxy fetch failed:", error.message);
         res.status(404).send("Stream resource not found.");
+    }
+});
+
+// Proxy route for DRM HLS decryption keys
+app.get('/:uuid/hls-key', async (req, res) => {
+    const { uuid } = req.params;
+    const queryParams = new URLSearchParams(req.query).toString();
+    const targetUrl = `https://stream.pimaxer.in/${uuid}/hls-key?${queryParams}`;
+    try {
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
+            responseType: 'arraybuffer'
+        });
+        res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
+        res.send(response.data);
+    } catch (error) {
+        console.error("DRM Key proxy failed:", error.message);
+        res.status(404).send("Key not found.");
     }
 });
 

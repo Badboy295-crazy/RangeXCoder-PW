@@ -323,6 +323,23 @@ function decrypt(text) {
     }
 }
 
+function verifyStreamToken(uuid, tokenStr) {
+    if (!tokenStr) return false;
+    const decrypted = decrypt(tokenStr);
+    if (!decrypted) return false;
+    const parts = decrypted.split(':');
+    if (parts.length !== 2) return false;
+    const [tokenUuid, expiresStr] = parts;
+    const expires = parseInt(expiresStr, 10);
+    if (isNaN(expires) || Date.now() > expires) {
+        return false;
+    }
+    if (tokenUuid.toLowerCase() !== uuid.toLowerCase()) {
+        return false;
+    }
+    return true;
+}
+
 function safeEncrypt(text) {
     if (!text) return text;
     try {
@@ -540,6 +557,11 @@ app.get('/api/play', async (req, res) => {
             if (typeof html === 'string') {
                 html = encryptUrlsInHtml(html, hostUrl);
                 html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+                html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
+                    const expires = Date.now() + 6 * 3600 * 1000;
+                    const streamToken = encrypt(`${uuid}:${expires}`);
+                    return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+                });
                 html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
             }
             res.send(html);
@@ -581,6 +603,11 @@ app.get('/schedule-details', async (req, res) => {
         if (typeof html === 'string') {
             html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+            html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
+                const expires = Date.now() + 6 * 3600 * 1000;
+                const streamToken = encrypt(`${uuid}:${expires}`);
+                return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+            });
             html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
         }
         res.send(html);
@@ -617,6 +644,11 @@ app.get('/get-dpp-quiz', async (req, res) => {
         if (typeof html === 'string') {
             html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+            html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
+                const expires = Date.now() + 6 * 3600 * 1000;
+                const streamToken = encrypt(`${uuid}:${expires}`);
+                return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+            });
             html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
         }
         res.send(html);
@@ -684,7 +716,9 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     }
     const uuid = uuidMatch[1];
     
-    const constructedHlsUrl = `/stream-proxy/${uuid}/master.m3u8`;
+    const expires = Date.now() + 6 * 3600 * 1000;
+    const streamToken = encrypt(`${uuid}:${expires}`);
+    const constructedHlsUrl = `/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
     
     return {
         videoData: {
@@ -769,6 +803,11 @@ app.get('/get-test-solution-video', async (req, res) => {
             const hostUrl = req.protocol + '://' + req.get('host');
             html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+            html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
+                const expires = Date.now() + 6 * 3600 * 1000;
+                const streamToken = encrypt(`${uuid}:${expires}`);
+                return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+            });
             html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
         }
         res.send(html);
@@ -782,8 +821,16 @@ app.get('/get-test-solution-video', async (req, res) => {
 app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
     const uuid = req.params[0];
     const subPath = req.params[1];
+    const { token } = req.query;
+    
+    if (!verifyStreamToken(uuid, token)) {
+        return res.status(403).send("Access denied: invalid or expired stream token.");
+    }
+
     const extraPath = subPath.split('?')[0];
-    const queryParams = new URLSearchParams(req.query).toString();
+    const query = { ...req.query };
+    delete query.token;
+    const queryParams = new URLSearchParams(query).toString();
     const targetUrl = `https://stream.pimaxer.in/${uuid}/${subPath}${queryParams ? '?' + queryParams : ''}`;
     
     try {
@@ -801,6 +848,27 @@ app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
                 const hostUrl = req.protocol + '://' + req.get('host');
                 // Rewrite absolute stream URLs if any
                 playlistText = playlistText.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
+                
+                // Append the secure token to relative URLs and keys inside the playlist text
+                if (token) {
+                    const tokenStr = encodeURIComponent(token);
+                    const lines = playlistText.split('\n');
+                    const newLines = lines.map(line => {
+                        const trimmed = line.trim();
+                        if (trimmed && !trimmed.startsWith('#')) {
+                            const separator = trimmed.includes('?') ? '&' : '?';
+                            return `${trimmed}${separator}token=${tokenStr}`;
+                        }
+                        if (trimmed && trimmed.startsWith('#EXT-X-KEY:')) {
+                            return trimmed.replace(/URI="([^"]+)"/, (match, uri) => {
+                                const separator = uri.includes('?') ? '&' : '?';
+                                return `URI="${uri}${separator}token=${tokenStr}"`;
+                            });
+                        }
+                        return line;
+                    });
+                    playlistText = newLines.join('\n');
+                }
             }
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
             res.send(playlistText);
@@ -830,7 +898,15 @@ app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
 // Proxy route for DRM HLS decryption keys
 app.get('/:uuid/hls-key', async (req, res) => {
     const { uuid } = req.params;
-    const queryParams = new URLSearchParams(req.query).toString();
+    const { token } = req.query;
+    
+    if (!verifyStreamToken(uuid, token)) {
+        return res.status(403).send("Access denied: invalid or expired stream token.");
+    }
+    
+    const query = { ...req.query };
+    delete query.token;
+    const queryParams = new URLSearchParams(query).toString();
     const targetUrl = `https://stream.pimaxer.in/${uuid}/hls-key?${queryParams}`;
     try {
         const response = await axios.get(targetUrl, {

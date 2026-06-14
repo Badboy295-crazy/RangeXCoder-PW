@@ -441,6 +441,9 @@ function encryptUrlsInHtml(html, hostUrl) {
     const urlRegex = /(https:\/\/stream\.testuk\.org\/[a-zA-Z0-9_-]+)(\?[^"\s'>]+)/g;
     return html.replace(urlRegex, (match, base, query) => {
         try {
+            if (base.includes("/media")) {
+                return match;
+            }
             const fullUrl = base + query;
             const encryptedToken = encrypt(fullUrl);
             let localPath = "/schedule-details";
@@ -550,6 +553,12 @@ app.get('/api/play', async (req, res) => {
 
         const contentType = response.headers['content-type'] || '';
         const finalUrl = response.request.res.responseUrl;
+
+        if (finalUrl && finalUrl.includes('/media/')) {
+            const hostUrl = req.protocol + '://' + req.get('host');
+            const mediaPath = finalUrl.substring(finalUrl.indexOf('/media/'));
+            return res.redirect(`${hostUrl}${mediaPath}`);
+        }
 
         if (contentType.includes('text/html')) {
             let html = response.data;
@@ -956,6 +965,52 @@ app.get('/:uuid/hls-key', async (req, res) => {
     } catch (error) {
         console.error("DRM Key proxy failed:", error.message);
         res.status(404).send("Key not found.");
+    }
+});
+
+// Proxy route for media pages and assets under stream.testuk.org
+app.get(/^\/media\/(.*)$/, async (req, res) => {
+    const subPath = req.params[0];
+    const queryParams = new URLSearchParams(req.query).toString();
+    const targetUrl = `https://stream.testuk.org/media/${subPath}${queryParams ? '?' + queryParams : ''}`;
+    
+    try {
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
+            responseType: 'arraybuffer'
+        });
+        
+        const contentType = response.headers['content-type'] || '';
+        
+        if (contentType.includes('text/html')) {
+            let html = response.data.toString('utf8');
+            const hostUrl = req.protocol + '://' + req.get('host');
+            if (typeof html === 'string') {
+                html = encryptUrlsInHtml(html, hostUrl);
+                html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+                html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
+                    const expires = Date.now() + 6 * 3600 * 1000;
+                    const streamToken = encrypt(`${uuid}:${expires}`);
+                    return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+                });
+                html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
+            }
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.send(html);
+        } else {
+            if (response.headers['content-type']) {
+                res.setHeader('Content-Type', response.headers['content-type']);
+            }
+            if (response.headers['content-length']) {
+                res.setHeader('Content-Length', response.headers['content-length']);
+            }
+            res.send(response.data);
+        }
+    } catch (error) {
+        console.error("Media proxy fetch failed:", error.message);
+        res.status(404).send("Media resource not found.");
     }
 });
 

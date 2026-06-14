@@ -623,24 +623,97 @@
             if (_firstStreamLoad) updLoader('Loading content...', 70);
 
             try {
-                if (activeSection === 'dpp') {
-                    const response = await fetch(`/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${CHAPTER_ID}`);
-                    const rawData = await response.json();
-                    const resData = decryptPayload(rawData.payload);
-                    renderQuizLayout(resData.data || []);
-                } else {
-                    let mappedType = 'videos';
-                    if (activeSection === 'notes') mappedType = 'notes';
-                    if (activeSection === 'dpp-pdf') mappedType = 'DppNotes';
-                    if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
+                if (CHAPTER_ID === 'ALL_CONTENT') {
+                    // Fetch topics to identify chapters with BOTH videos and notes
+                    const pages = [1, 2, 3];
+                    const topicsPromises = pages.map(p => 
+                        fetch(`/api/topics?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&page=${p}`)
+                            .then(r => r.json())
+                            .then(data => decryptPayload(data.payload).data || [])
+                            .catch(() => [])
+                    );
+                    const topicsResults = await Promise.all(topicsPromises);
+                    let allTopics = [];
+                    topicsResults.forEach(topics => { allTopics = allTopics.concat(topics); });
 
-                    const response = await fetch(`/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${CHAPTER_ID}`);
-                    const rawData = await response.json();
-                    const resData = decryptPayload(rawData.payload);
-                    
-                    if (activeSection === 'videos') renderLecturesLayout(resData.data || []);
-                    else if (activeSection === 'notes' || activeSection === 'dpp-pdf') renderSheetsLayout(resData.data || [], activeSection === 'dpp-pdf');
-                    else renderEmptyRocketState();
+                    // Filter chapters containing both lectures AND notes
+                    const qualifyingTopics = allTopics.filter(t => {
+                        const videosCount = t.videos !== undefined ? t.videos : (t.lectureVideos || 0);
+                        const notesCount = t.notes !== undefined ? t.notes : 0;
+                        return videosCount > 0 && notesCount > 0;
+                    });
+
+                    if (qualifyingTopics.length === 0) {
+                        renderEmptyRocketState();
+                        return;
+                    }
+
+                    if (activeSection === 'dpp') {
+                        const quizPromises = qualifyingTopics.map(t => 
+                            fetch(`/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${t._id}`)
+                                .then(r => r.json())
+                                .then(data => decryptPayload(data.payload).data || [])
+                                .catch(() => [])
+                        );
+                        const quizResults = await Promise.all(quizPromises);
+                        let mergedItems = [];
+                        quizResults.forEach(items => { mergedItems = mergedItems.concat(items); });
+
+                        // Sort chronologically in descending order
+                        mergedItems.sort((a, b) => {
+                            const dateA = a.date ? new Date(a.date).getTime() : 0;
+                            const dateB = b.date ? new Date(b.date).getTime() : 0;
+                            return dateB - dateA;
+                        });
+
+                        renderQuizLayout(mergedItems);
+                    } else {
+                        let mappedType = 'videos';
+                        if (activeSection === 'notes') mappedType = 'notes';
+                        if (activeSection === 'dpp-pdf') mappedType = 'DppNotes';
+                        if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
+
+                        const contentPromises = qualifyingTopics.map(t => 
+                            fetch(`/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${t._id}`)
+                                .then(r => r.json())
+                                .then(data => decryptPayload(data.payload).data || [])
+                                .catch(() => [])
+                        );
+                        const contentResults = await Promise.all(contentPromises);
+                        let mergedItems = [];
+                        contentResults.forEach(items => { mergedItems = mergedItems.concat(items); });
+
+                        // Sort chronologically in descending order
+                        mergedItems.sort((a, b) => {
+                            const dateA = a.date ? new Date(a.date).getTime() : 0;
+                            const dateB = b.date ? new Date(b.date).getTime() : 0;
+                            return dateB - dateA;
+                        });
+
+                        if (activeSection === 'videos') renderLecturesLayout(mergedItems);
+                        else if (activeSection === 'notes' || activeSection === 'dpp-pdf') renderSheetsLayout(mergedItems, activeSection === 'dpp-pdf');
+                        else renderEmptyRocketState();
+                    }
+                } else {
+                    if (activeSection === 'dpp') {
+                        const response = await fetch(`/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${CHAPTER_ID}`);
+                        const rawData = await response.json();
+                        const resData = decryptPayload(rawData.payload);
+                        renderQuizLayout(resData.data || []);
+                    } else {
+                        let mappedType = 'videos';
+                        if (activeSection === 'notes') mappedType = 'notes';
+                        if (activeSection === 'dpp-pdf') mappedType = 'DppNotes';
+                        if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
+
+                        const response = await fetch(`/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${CHAPTER_ID}`);
+                        const rawData = await response.json();
+                        const resData = decryptPayload(rawData.payload);
+                        
+                        if (activeSection === 'videos') renderLecturesLayout(resData.data || []);
+                        else if (activeSection === 'notes' || activeSection === 'dpp-pdf') renderSheetsLayout(resData.data || [], activeSection === 'dpp-pdf');
+                        else renderEmptyRocketState();
+                    }
                 }
             } catch (error) {
                 renderEmptyRocketState();

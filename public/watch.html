@@ -1336,16 +1336,7 @@
         }
 
         function triggerSilentFallback(tkn) {
-            const pop = window.open('/api/play?token=' + encodeURIComponent(tkn), '_blank');
-            if (!pop || pop.closed || typeof pop.closed === 'undefined') {
-                window.location.href = '/api/play?token=' + encodeURIComponent(tkn);
-            } else {
-                if (window.history.length > 1) {
-                    window.history.back();
-                } else {
-                    window.location.href = '/';
-                }
-            }
+            window.location.href = '/api/play?token=' + encodeURIComponent(tkn);
         }
         
         // Animated loading stages so user feels progress

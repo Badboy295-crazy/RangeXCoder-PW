@@ -502,7 +502,30 @@
                 const rawData = await response.json();
                 const resData = decryptPayload(rawData.payload);
 
-                if (currentPage === 1) { container.innerHTML = ''; }
+                 if (currentPage === 1) { 
+                     container.innerHTML = ''; 
+                     
+                     // Prepend "All Content" card at the very top
+                     const allContentCard = document.createElement('div');
+                     allContentCard.className = 'topic-row-card';
+                     allContentCard.style.border = '1px dashed var(--accent-purple)';
+                     allContentCard.style.background = 'rgba(var(--accent-purple), 0.04)';
+                     
+                     allContentCard.onclick = () => {
+                         window.location.href = `/stream.html?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterId=ALL_CONTENT&batchName=${encodeURIComponent(BATCH_NAME)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&chapterName=${encodeURIComponent("All Content")}&section=videos`;
+                     };
+                     
+                     allContentCard.innerHTML = `
+                         <div class="topic-left-layout-node">
+                             <div class="topic-primary-title-h2" style="color: var(--accent-purple); font-weight: 800;">All Content</div>
+                             <div class="topic-metadata-sub-text">
+                                 <i class="fas fa-layer-group" style="color:var(--accent-purple);"></i> View combined lectures & notes from all active chapters
+                             </div>
+                         </div>
+                         <div class="topic-right-action-node"><i class="fas fa-chevron-right" style="color: var(--accent-purple);"></i></div>
+                     `;
+                     container.appendChild(allContentCard);
+                 }
 
                 if (!resData.success || !Array.isArray(resData.data) || resData.data.length === 0) {
                     hasMorePagesData = false;

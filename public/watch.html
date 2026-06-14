@@ -95,8 +95,19 @@
     #shell{position:fixed;inset:0;display:flex;flex-direction:column;background:transparent;overflow:hidden}
     #main-row{flex:1;min-height:0;display:flex;flex-direction:row;overflow:hidden}
     #video-col{flex:1;min-width:0;min-height:0;position:relative;background:#000;overflow:hidden}
-    #vid-box{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
-    video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;display:block;outline:none;pointer-events:none}
+    #ambient-glow {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.55;
+      filter: blur(80px);
+      transition: background 1.6s ease, box-shadow 1.6s ease;
+      background: transparent;
+      transform: scale(1.1);
+    }
+    #vid-box{position:absolute;inset:0;background:transparent;display:flex;align-items:center;justify-content:center}
+    video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:transparent;display:block;outline:none;pointer-events:none;z-index:1;}
     
     /* Premium Loader Styling */
     .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;z-index:10}
@@ -175,7 +186,7 @@
     .live-badge.on{display:flex}
     .live-dot{width:7px;height:7px;border-radius:50%;background:red;animation:blink 1.4s ease infinite}
     
-    .bar-wrap{position:relative;height:24px;display:flex;align-items:center;cursor:pointer;touch-action:none}
+    .bar-wrap{position:relative;height:24px;display:flex;align-items:center;cursor:pointer;}
     .bar-bg{position:absolute;left:0;right:0;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden}
     .bar-buf{height:100%;background:rgba(255,255,255,.35);position:absolute;left:0;border-radius:2px}
     .bar-fill{height:100%;background:var(--accent);position:absolute;left:0;border-radius:2px}
@@ -186,6 +197,8 @@
     .btn-row{display:flex;align-items:center;justify-content:space-between;padding:0 8px}
     .btn-l,.btn-r{display:flex;align-items:center}
     .cbtn{background:none;border:none;color:#fff;cursor:pointer;min-width:44px;min-height:44px;padding:4px;display:flex;align-items:center;justify-content:center;border-radius:8px;flex-shrink:0;outline:none;transition:transform .12s,opacity .12s}
+    .cbtn.active{color:var(--accent)!important}
+    .cbtn.active svg{stroke:var(--accent)!important;fill:none!important}
     .cbtn:active{transform:scale(.85);opacity:.65}
     .vol-grp{display:flex;align-items:center}
     .vol-range{-webkit-appearance:none;width:0;height:4px;border-radius:2px;background:rgba(255,255,255,.25);outline:none;cursor:pointer;opacity:0;transition:width .3s,opacity .3s;margin-left:0}
@@ -317,6 +330,7 @@
   <div id="shell">
     <div id="main-row">
       <div id="video-col">
+        <div id="ambient-glow"></div>
         <div id="vid-box">
           <video id="vid" playsinline crossorigin="anonymous"></video>
         </div>
@@ -380,6 +394,15 @@
                 </div>
               </div>
               <div class="btn-r">
+                <button class="cbtn" id="notesBtn" title="Class Notes & Resources">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </button>
                 <button class="cbtn" id="settBtn" title="Player settings"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
                 <button class="cbtn" id="fsBtn" title="Fullscreen"><svg id="iFs" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
               </div>
@@ -416,6 +439,14 @@
           </div>
         </div>
       </div>
+      <!-- Desktop Side Panel -->
+      <div id="side-panel">
+        <div class="panel-inner" id="panelInner"></div>
+      </div>
+    </div>
+    <!-- Mobile Bottom Panel -->
+    <div id="bottom-panel">
+      <div class="panel-inner" id="panelInnerMob"></div>
     </div>
   </div>
 
@@ -600,28 +631,95 @@
         durTime.textContent=fmt(vid.duration);
       }
     }
-    seekBar.addEventListener('mousedown',()=>{wasPlaying=!vid.paused;});
-    seekBar.addEventListener('touchstart',()=>{wasPlaying=!vid.paused;},{passive:true});
-    seekBar.addEventListener('input',()=>{
-      isSeeking=true;onInteraction();
-      if(isLive){
-        const r=getLiveRange();
-        if(r&&r.end>r.start){
-          const target=r.start+(seekBar.value/1000)*(r.end-r.start);
-          vid.currentTime=Math.max(r.start,Math.min(r.end,target));
-          const p=(vid.currentTime-r.start)/(r.end-r.start)*100;
-          barFill.style.width=p+'%';barThumb.style.left=p+'%';curTime.textContent=fmt(vid.currentTime);
+    let seekDebounceTimer = null;
+    seekBar.addEventListener('mousedown', () => {
+      isSeeking = true;
+      wasPlaying = !vid.paused;
+      if (!vid.paused) vid.pause();
+    });
+    seekBar.addEventListener('touchstart', () => {
+      isSeeking = true;
+      wasPlaying = !vid.paused;
+      if (!vid.paused) vid.pause();
+    }, {passive: true});
+    seekBar.addEventListener('input', () => {
+      isSeeking = true;
+      onInteraction();
+      const p = seekBar.value / 1000;
+      if (isLive) {
+        const r = getLiveRange();
+        if (r && r.end > r.start) {
+          const target = r.start + p * (r.end - r.start);
+          barFill.style.width = (p * 100) + '%';
+          barThumb.style.left = (p * 100) + '%';
+          curTime.textContent = fmt(target);
         }
-      }else{
-        if(vid.duration&&isFinite(vid.duration)){
-          const p=seekBar.value/1000;
-          vid.currentTime=p*vid.duration;barFill.style.width=(p*100)+'%';barThumb.style.left=(p*100)+'%';curTime.textContent=fmt(vid.currentTime);
+      } else {
+        if (vid.duration && isFinite(vid.duration)) {
+          const target = p * vid.duration;
+          barFill.style.width = (p * 100) + '%';
+          barThumb.style.left = (p * 100) + '%';
+          curTime.textContent = fmt(target);
         }
       }
     });
-    seekBar.addEventListener('change',()=>{isSeeking=false;if(wasPlaying&&vid.paused)vid.play().catch(()=>{});});
-    vid.addEventListener('timeupdate',()=>{if(isSeeking)return;updBar();syncSlide(false);});
-    vid.addEventListener('loadedmetadata',()=>{if(!isLive&&isFinite(vid.duration)&&vid.duration>0)durTime.textContent=fmt(vid.duration);});
+    seekBar.addEventListener('change', () => {
+      const p = seekBar.value / 1000;
+      if (isLive) {
+        const r = getLiveRange();
+        if (r && r.end > r.start) {
+          const target = r.start + p * (r.end - r.start);
+          vid.currentTime = Math.max(r.start, Math.min(r.end, target));
+        }
+      } else {
+        if (vid.duration && isFinite(vid.duration)) {
+          vid.currentTime = p * vid.duration;
+        }
+      }
+      if (wasPlaying) {
+        vid.play().catch(() => {});
+      }
+      onInteraction();
+    });
+    vid.addEventListener('seeking', () => {
+      isSeeking = true;
+      clearTimeout(seekDebounceTimer);
+    });
+    vid.addEventListener('seeked', () => {
+      clearTimeout(seekDebounceTimer);
+      seekDebounceTimer = setTimeout(() => {
+        isSeeking = false;
+        updBar();
+      }, 250);
+    });
+    vid.addEventListener('timeupdate', () => {
+      if (isSeeking) return;
+      updBar();
+      syncSlide(false);
+      
+      const tsEl = document.getElementById('noteTimestamp');
+      if (tsEl) tsEl.textContent = fmt(vid.currentTime);
+      
+      const now = Date.now();
+      if (now - lastSaveTime > 2000 && vid.currentTime > 2 && !isLive) {
+        lastSaveTime = now;
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamToken = urlParams.get('token') || '';
+        localStorage.setItem('pw_pos_' + streamToken.slice(-20), vid.currentTime);
+      }
+    });
+    vid.addEventListener('loadedmetadata',()=>{
+      if(!isLive&&isFinite(vid.duration)&&vid.duration>0)durTime.textContent=fmt(vid.duration);
+      const savedSpeed = parseFloat(localStorage.getItem('pw_player_speed')) || 1.0;
+      if (savedSpeed !== 1.0) {
+        vid.playbackRate = savedSpeed;
+        regularPlaybackRate = savedSpeed;
+        spdBadge.textContent = savedSpeed === 1 ? '1x' : savedSpeed + 'x';
+        const lbl = savedSpeed === 1 ? 'Normal' : savedSpeed + 'x';
+        const vlbl = document.getElementById('sSpeedVal');
+        if (vlbl) vlbl.textContent = lbl;
+      }
+    });
     vid.addEventListener('progress',()=>{
       if(isLive){
         if(vid.buffered.length){const r=getLiveRange();if(r&&r.end>r.start){const bufEnd=vid.buffered.end(vid.buffered.length-1);barBuf.style.width=Math.min(100,(bufEnd-r.start)/(r.end-r.start)*100)+'%';}}
@@ -645,7 +743,9 @@
       regularPlaybackRate = sp;
       spdBadge.textContent = sp === 1 ? '1x' : sp + 'x';
       const lbl = sp === 1 ? 'Normal' : sp + 'x';
-      document.getElementById('sSpeedVal').textContent = lbl;
+      const vlbl = document.getElementById('sSpeedVal');
+      if (vlbl) vlbl.textContent = lbl;
+      localStorage.setItem('pw_player_speed', sp);
       const opts = document.getElementById('sSpeedOpts');
       if (opts) {
         opts.querySelectorAll('.sopt').forEach(o => {
@@ -676,7 +776,19 @@
     document.getElementById('sBoostBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
     document.getElementById('sHoldSpeedBack').addEventListener('click',e=>{e.stopPropagation();showSub('main');});
 
-    function buildSpeed(){const c=document.getElementById('sSpeedOpts');c.innerHTML='';[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6].forEach(sp=>{const lbl=sp===1?'Normal':sp+'x';const d=document.createElement('div');d.className='sopt'+(sp===1?' active':'');d.innerHTML=`<span>${lbl}</span><div class="radio"><div class="rdot"></div></div>`;d.onclick=e=>{e.stopPropagation();setSpeed(sp);closeSett();};c.appendChild(d);});}
+    function buildSpeed(){
+      const c=document.getElementById('sSpeedOpts');
+      c.innerHTML='';
+      const savedSpeed = parseFloat(localStorage.getItem('pw_player_speed')) || 1.0;
+      [0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6].forEach(sp=>{
+        const lbl=sp===1?'Normal':sp+'x';
+        const d=document.createElement('div');
+        d.className='sopt'+(sp===savedSpeed?' active':'');
+        d.innerHTML=`<span>${lbl}</span><div class="radio"><div class="rdot"></div></div>`;
+        d.onclick=e=>{e.stopPropagation();setSpeed(sp);closeSett();};
+        c.appendChild(d);
+      });
+    }
 
     function buildQual(levels){const c=document.getElementById('sQualOpts');c.innerHTML='';[{label:'Auto',value:-1},...levels].forEach(lv=>{const d=document.createElement('div');d.className='sopt'+(lv.value===-1?' active':'');d.innerHTML=`<span>${lv.label}</span><div class="radio"><div class="rdot"></div></div>`;d.onclick=e=>{e.stopPropagation();document.getElementById('sQualVal').textContent=lv.label;c.querySelectorAll('.sopt').forEach(o=>o.classList.remove('active'));d.classList.add('active');if(hlsInst){if(lv.value===-1){hlsInst.autoLevelCapping=-1;hlsInst.nextLevel=-1;}else{hlsInst.autoLevelCapping=lv.value;hlsInst.nextLevel=lv.value;}}if(shakaInst){try{if(lv.value===-1){shakaInst.configure({abr:{enabled:true}});}else{const t=shakaInst.getVariantTracks().find(t=>t.id===lv.value);if(t){shakaInst.configure({abr:{enabled:false}});shakaInst.selectVariantTrack(t,true);}}}catch{}}closeSett();};c.appendChild(d);});}
 
@@ -1340,6 +1452,8 @@
                         }
                         
                         VIDEO_DATA = decryptedData.videoData;
+                        decryptedBatchId = decryptedData.batchId || "";
+                        decryptedSubjectId = decryptedData.subjectId || "";
                         NOTES = decryptedData.notes || [];
                         DPP_NOTES = decryptedData.dppNotes || [];
                         TOPIC_NAME = decryptedData.topicName || "Video Player";
@@ -1347,7 +1461,7 @@
                         SLIDES = decryptedData.slides || [];
                         
                         // Update document title and header title
-                        document.title = TOPIC_NAME + " — RangeXCoder";
+                        document.title = TOPIC_NAME + " | PW Zone";
                         const titleEl = document.getElementById('player-title');
                         if (titleEl) titleEl.textContent = TOPIC_NAME;
                         
@@ -1356,6 +1470,7 @@
                             if (!VIDEO_DATA?.url) throw new Error('Video URL not available.');
                             if (isYT(VIDEO_DATA.url)) document.body.classList.add('yt-mode');
                             initPlayer(VIDEO_DATA);
+                            checkAndShowResumeToast();
                             
                             // Rebuild timeline and panels since notes/dpp_notes are now populated
                             if (typeof buildPanelHTML === 'function') {
@@ -1383,6 +1498,318 @@
             showError(err.message || 'API call failed.');
         }
     }
+
+    /* ── AMBIENT GLOW & RECONCILIATION ─────────── */
+    let lastSaveTime = 0;
+    let decryptedBatchId = "";
+    let decryptedSubjectId = "";
+
+    // Ambilight Capture Loop
+    (function() {
+      const glowEl = document.getElementById('ambient-glow');
+      if (!glowEl) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 16;
+      canvas.height = 9;
+      const ctx = canvas.getContext('2d');
+      setInterval(() => {
+        if (vid && !vid.paused && !vid.ended && vid.readyState >= 2) {
+          try {
+            ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let r = 0, g = 0, b = 0, count = 0;
+            for (let i = 0; i < imgData.length; i += 4) {
+              const pr = imgData[i];
+              const pg = imgData[i+1];
+              const pb = imgData[i+2];
+              if (pr > 15 || pg > 15 || pb > 15) {
+                r += pr; g += pg; b += pb;
+                count++;
+              }
+            }
+            if (count > 0) {
+              r = Math.round(r / count);
+              g = Math.round(g / count);
+              b = Math.round(b / count);
+              glowEl.style.background = `radial-gradient(circle, rgba(${r},${g},${b},0.5) 0%, rgba(${r},${g},${b},0.15) 70%, transparent 100%)`;
+              glowEl.style.boxShadow = `inset 0 0 80px rgba(${r},${g},${b},0.45)`;
+            }
+          } catch (e) {
+            console.debug("Ambilight capture ignored:", e.message);
+          }
+        }
+      }, 1500);
+    })();
+
+    // Playback Resume History Toast
+    function checkAndShowResumeToast() {
+      if (isLive) return;
+      const urlParams = new URLSearchParams(window.location.search);
+      const streamToken = urlParams.get('token') || '';
+      const savedPos = parseFloat(localStorage.getItem('pw_pos_' + streamToken.slice(-20)));
+      if (savedPos && savedPos > 5) {
+        if (document.getElementById('resume-toast')) return;
+        const toast = document.createElement('div');
+        toast.id = 'resume-toast';
+        toast.style.cssText = 'position:fixed; bottom:95px; left:20px; z-index:99999; background:rgba(18,19,26,0.92); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px; box-shadow:0 10px 30px rgba(0,0,0,0.5); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); color:#fff; font-family:\'Outfit\',sans-serif; transform:translateY(100px); opacity:0; transition:transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;';
+        toast.innerHTML = `
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <span style="font-size:13px; font-weight:700; color:#fff;">Resume Playback?</span>
+            <span style="font-size:11px; color:#8e92b2;">You watched up to ${fmt(savedPos)}</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="resume-yes-btn" style="background:var(--accent); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer;">Resume</button>
+            <button id="resume-no-btn" style="background:rgba(255,255,255,0.06); color:#a0a5c0; border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:6px 12px; font-size:11px; font-weight:600; cursor:pointer;">Dismiss</button>
+          </div>
+        `;
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.style.transform = 'translateY(0)';
+          toast.style.opacity = '1';
+        });
+        const dismiss = () => {
+          toast.style.transform = 'translateY(50px)';
+          toast.style.opacity = '0';
+          setTimeout(() => toast.remove(), 400);
+        };
+        document.getElementById('resume-yes-btn').onclick = () => {
+          vid.currentTime = savedPos;
+          dismiss();
+        };
+        document.getElementById('resume-no-btn').onclick = dismiss;
+        setTimeout(dismiss, 7000);
+      }
+    }
+
+    vid.addEventListener('ended', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const streamToken = urlParams.get('token') || '';
+      localStorage.removeItem('pw_pos_' + streamToken.slice(-20));
+    });
+
+    // Notes Panel Logic
+    window.togglePanel = function() {
+      panelOpen = !panelOpen;
+      const side = document.getElementById('side-panel');
+      const bottom = document.getElementById('bottom-panel');
+      const btn = document.getElementById('notesBtn');
+      if (panelOpen) {
+        if (isDesktop()) {
+          side.classList.add('open');
+          bottom.classList.remove('open');
+        } else {
+          bottom.classList.add('open');
+          side.classList.remove('open');
+        }
+        btn.classList.add('active');
+        const pHTML = buildPanelHTML();
+        document.getElementById('panelInner').innerHTML = pHTML;
+        document.getElementById('panelInnerMob').innerHTML = pHTML;
+        renderCustomNotesList();
+      } else {
+        side.classList.remove('open');
+        bottom.classList.remove('open');
+        btn.classList.remove('active');
+      }
+    };
+
+    document.getElementById('notesBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.togglePanel();
+    });
+
+    window.openAttachment = async function(id, type) {
+      try {
+        const response = await fetch(`/api/get-token?type=${type}&batchId=${encodeURIComponent(decryptedBatchId)}&subjectId=${encodeURIComponent(decryptedSubjectId)}&scheduleId=${encodeURIComponent(id)}`);
+        const resData = await response.json();
+        if (resData.success && resData.token) {
+          window.open(`/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
+        } else {
+          alert("Failed to load attachment: " + (resData.message || "Unknown error"));
+        }
+      } catch (error) {
+        console.error("Failed to generate sheet token:", error);
+        alert("Connection error fetching attachment.");
+      }
+    };
+
+    window.seekToNote = function(time) {
+      vid.currentTime = time;
+      if (vid.paused) vid.play().catch(() => {});
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const streamToken = urlParams.get('token') || '';
+    const noteStorageKey = 'pw_notes_' + streamToken.slice(-20);
+
+    window.addCustomNote = function() {
+      const textEls = document.querySelectorAll('#noteText');
+      let text = "";
+      textEls.forEach(el => { if(el.value.trim()) text = el.value.trim(); });
+      if (!text) return;
+      const notes = getCustomNotes();
+      notes.push({ id: Date.now(), time: vid.currentTime, text });
+      localStorage.setItem(noteStorageKey, JSON.stringify(notes));
+      textEls.forEach(el => el.value = '');
+      renderCustomNotesList();
+    };
+
+    window.deleteNote = function(id) {
+      let notes = getCustomNotes();
+      notes = notes.filter(n => n.id !== id);
+      localStorage.setItem(noteStorageKey, JSON.stringify(notes));
+      renderCustomNotesList();
+    };
+
+    function getCustomNotes() {
+      try {
+        const stored = localStorage.getItem(noteStorageKey);
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderCustomNotesList() {
+      const notes = getCustomNotes();
+      notes.sort((a, b) => a.time - b.time);
+      const lists = document.querySelectorAll('#notesList');
+      lists.forEach(list => {
+        if (!list) return;
+        if (notes.length === 0) {
+          list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted); font-size:12px;">No custom notes yet.</div>';
+          return;
+        }
+        let html = "";
+        notes.forEach(note => {
+          html += `
+          <div class="att-item" style="background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.05); margin-bottom:8px; padding:10px;">
+              <div style="display:flex; flex-direction:column; gap:4px; flex:1; cursor:pointer;" onclick="seekToNote(${note.time})">
+                  <div style="font-size:11px; font-weight:700; color:var(--accent); font-family:monospace;">${fmt(note.time)}</div>
+                  <div style="font-size:12px; color:#fff; line-height:1.4; word-break:break-word;">${note.text}</div>
+              </div>
+              <button class="att-btn" onclick="deleteNote(${note.id})" style="width:28px; height:28px; border-radius:6px; border:none; background:rgba(255,67,102,0.15); color:#ff4366; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                  <i class="fas fa-trash-alt" style="font-size:12px;"></i>
+              </button>
+          </div>`;
+        });
+        list.innerHTML = html;
+      });
+    }
+
+    function buildPanelHTML() {
+      let notesHTML = "";
+      if (!NOTES || NOTES.length === 0) {
+        notesHTML = '<div style="padding:20px; text-align:center; color:var(--muted); font-size:12px;">No official class notes available.</div>';
+      } else {
+        NOTES.forEach((note) => {
+          notesHTML += `
+          <div class="att-item">
+              <div class="att-dot nd"></div>
+              <div class="att-name">${note.topic}</div>
+              <div class="att-actions">
+                  <button class="att-btn" onclick="openAttachment('${note._id}', 'note')" title="View Note"><svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></button>
+              </div>
+          </div>`;
+        });
+      }
+
+      let dppsHTML = "";
+      if (!DPP_NOTES || DPP_NOTES.length === 0) {
+        dppsHTML = '<div style="padding:20px; text-align:center; color:var(--muted); font-size:12px;">No official DPP files available.</div>';
+      } else {
+        DPP_NOTES.forEach((dpp) => {
+          dppsHTML += `
+          <div class="att-item">
+              <div class="att-dot dd"></div>
+              <div class="att-name">${dpp.topic}</div>
+              <div class="att-actions">
+                  <button class="att-btn" onclick="openAttachment('${dpp._id}', 'dpp-pdf')" title="View DPP"><svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></button>
+              </div>
+          </div>`;
+        });
+      }
+
+      return `
+      <div class="panel-hdr">
+          <span class="panel-hdr-title">Notes & Resources</span>
+          <button class="panel-close" onclick="togglePanel()"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="panel-tabs">
+          <button class="ptab active" onclick="switchPanelTab(this, 'res')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V3A2.5 2.5 0 0 1 6.5 0.5H20v16.5H6.5a2.5 2.5 0 0 0-2.5 2.5z"/></svg>
+              Resources
+          </button>
+          <button class="ptab" onclick="switchPanelTab(this, 'my')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              My Notes
+          </button>
+      </div>
+      <div class="panel-body">
+          <div class="ptab-panel active" id="ptab-res">
+              <div class="acc open" id="acc-notes">
+                  <div class="acc-hdr" onclick="toggleAccordion('acc-notes')">
+                      <div class="acc-hl">
+                          <div class="acc-ic ni"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>
+                          <span class="acc-title nt">Class Notes</span>
+                          <span class="acc-cnt nc">${NOTES.length}</span>
+                      </div>
+                      <div class="acc-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+                  </div>
+                  <div class="acc-body">
+                      <div class="acc-inner">
+                          ${notesHTML}
+                      </div>
+                  </div>
+              </div>
+              <div class="acc open" id="acc-dpps">
+                  <div class="acc-hdr" onclick="toggleAccordion('acc-dpps')">
+                      <div class="acc-hl">
+                          <div class="acc-ic di"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>
+                          <span class="acc-title dt">DPP PDF Files</span>
+                          <span class="acc-cnt dc">${DPP_NOTES.length}</span>
+                      </div>
+                      <div class="acc-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+                  </div>
+                  <div class="acc-body">
+                      <div class="acc-inner">
+                          ${dppsHTML}
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <div class="ptab-panel" id="ptab-my">
+              <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+                  <textarea id="noteText" placeholder="Add a custom note at current time..." style="width:100%; height:75px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:8px; color:#fff; font-size:12px; font-family:inherit; resize:none; outline:none;"></textarea>
+                  <button id="addNoteBtn" onclick="addCustomNote()" style="background:var(--accent); color:#fff; border:none; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:opacity .15s;">
+                      <i class="fas fa-plus"></i> Add Note at <span id="noteTimestamp">0:00</span>
+                  </button>
+              </div>
+              <div id="notesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+      </div>`;
+    }
+
+    window.switchPanelTab = function(btn, type) {
+      const parent = btn.closest('.panel-inner');
+      const tabs = parent.querySelectorAll('.ptab');
+      tabs.forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      const resPanel = parent.querySelector('#ptab-res');
+      const myPanel = parent.querySelector('#ptab-my');
+      if (type === 'res') {
+        resPanel.classList.add('active');
+        myPanel.classList.remove('active');
+      } else {
+        resPanel.classList.remove('active');
+        myPanel.classList.add('active');
+        renderCustomNotesList();
+      }
+    };
+    window.toggleAccordion = function(id) {
+      const acc = document.getElementById(id);
+      if (acc) acc.classList.toggle('open');
+    };
 
     try {
         fetchDynamicVideoData();

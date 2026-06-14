@@ -660,8 +660,9 @@ app.get('/get-dpp-quiz', async (req, res) => {
 
 async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     let match = null;
-    if (tag) {
-        const contentsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${tag}`;
+    let finalTag = tag;
+    if (finalTag) {
+        const contentsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${finalTag}`;
         const res = await axios.get(contentsUrl, { headers: HEADERS, timeout: 5000 });
         const items = res.data?.data || [];
         match = items.find(item => item._id === scheduleId);
@@ -679,10 +680,12 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
                 .catch(() => [])
         );
         const results = await Promise.all(reqs);
-        for (const items of results) {
+        for (let i = 0; i < results.length; i++) {
+            const items = results[i];
             const found = items.find(item => item._id === scheduleId);
             if (found) {
                 match = found;
+                finalTag = topics[i]._id;
                 break;
             }
         }
@@ -719,6 +722,37 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     const expires = Date.now() + 6 * 3600 * 1000;
     const streamToken = encrypt(`${uuid}:${expires}`);
     const constructedHlsUrl = `/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+
+    // Fetch notes and DPP files for the same tag/topic
+    let notes = [];
+    let dppNotes = [];
+    if (finalTag) {
+        try {
+            const notesUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=notes&tag=${finalTag}`;
+            const notesRes = await axios.get(notesUrl, { headers: HEADERS, timeout: 5000 });
+            notes = notesRes.data?.data || [];
+        } catch (err) {
+            console.error("Error fetching notes for player:", err.message);
+        }
+        
+        try {
+            const dppUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=dpp-pdf&tag=${finalTag}`;
+            const dppRes = await axios.get(dppUrl, { headers: HEADERS, timeout: 5000 });
+            dppNotes = dppRes.data?.data || [];
+        } catch (err) {
+            console.error("Error fetching dpp-pdf for player:", err.message);
+        }
+    }
+
+    const notesList = notes.map(n => ({
+        _id: safeEncrypt(n._id),
+        topic: n.homeworkIds?.[0]?.topic || n.topic || "Class Note"
+    }));
+
+    const dppList = dppNotes.map(d => ({
+        _id: safeEncrypt(d._id),
+        topic: d.homeworkIds?.[0]?.topic || d.topic || "DPP Attachment"
+    }));
     
     return {
         videoData: {
@@ -726,9 +760,11 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
             drmType: "ClearKey",
             keys: []
         },
+        batchId: safeEncrypt(batchId),
+        subjectId: safeEncrypt(subjectId),
         pwHeaders: {},
-        notes: [],
-        dppNotes: [],
+        notes: notesList,
+        dppNotes: dppList,
         topicName: match.topic || "Stream Player",
         slides: []
     };

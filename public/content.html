@@ -23,7 +23,7 @@
     <title>Subject Topics Explorer — PW Zone</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <script>
         (function() {
             const theme = localStorage.getItem('pwzone_theme') || 'night';
@@ -212,6 +212,79 @@
         .nav-item i { font-size: 20px; }
         .nav-item span { font-size: 11px; font-weight: 600; }
         .nav-item.active { color: var(--accent-purple); transform: scale(1.05); }
+
+        .logo-box {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-hover));
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 22px;
+            margin-right: 12px;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(92, 91, 229, 0.4);
+        }
+        .logo-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-white);
+        }
+        .logo-highlight {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-left: 2px;
+        }
+
+        /* Skeleton Shimmer Loaders */
+        .skeleton-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .skeleton-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+        .skeleton-img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+        }
+        .skeleton-title {
+            height: 20px;
+            width: 60%;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+        }
+        .skeleton-text {
+            height: 12px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -233,6 +306,10 @@
             <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
                 <div class="back-btn" id="customBackLinkBtn"><i class="fas fa-chevron-left"></i></div>
                 <div class="subject-headline-title" id="subjectHeaderTitle">Loading Subject Engine...</div>
+                <div class="header-brand" style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted);">
+                    <div class="logo-box" style="width: 22px; height: 22px; font-size: 11px; margin-right: 0; box-shadow: none;">PW</div>
+                    PW <span class="logo-highlight">Zone</span>
+                </div>
             </div>
         </div>
 
@@ -394,6 +471,7 @@
         const BATCH_NAME = urlParams.get('batchName') || "";
 
         document.getElementById('subjectHeaderTitle').innerText = SUBJECT_NAME;
+        document.title = SUBJECT_NAME + " | PW Zone";
         
         document.getElementById('customBackLinkBtn').onclick = () => {
             window.location.href = `/subjects.html?batchId=${BATCH_ID}&batchName=${encodeURIComponent(BATCH_NAME)}`;
@@ -406,9 +484,19 @@
         async function fetchNextTopicsChunk() {
             if (isFetchingPageLock || !hasMorePagesData) return;
             isFetchingPageLock = true;
-            if (currentPage === 1) updLoader('Loading chapters...', 70);
-
             const container = document.getElementById('topicsContainerDeck');
+            if (currentPage === 1) {
+                updLoader('Loading chapters...', 70);
+                container.innerHTML = Array(5).fill(0).map(() => `
+                    <div class="skeleton-card" style="padding: 18px 24px; flex-direction: row; align-items: center; justify-content: space-between; border-radius: 16px; margin-bottom: 15px;">
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <div class="skeleton-title" style="width: 50%; height: 16px;"></div>
+                            <div class="skeleton-text" style="width: 20%; height: 10px;"></div>
+                        </div>
+                        <div class="skeleton-img" style="width: 24px; height: 24px; border-radius: 6px; aspect-ratio: 1/1; flex-shrink: 0;"></div>
+                    </div>
+                `).join('');
+            }
             try {
                 const response = await fetch(`/api/topics?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&page=${currentPage}`);
                 const rawData = await response.json();

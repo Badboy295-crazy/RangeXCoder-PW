@@ -285,7 +285,7 @@ app.get('/api/decrypt-token', (req, res) => {
     sendEncrypted(res, { url: decryptedUrl });
 });
 
-// Instant redirect
+// Instant redirect (rewriting domain to keep user on our domain)
 app.get('/api/go', (req, res) => {
     const { token } = req.query;
     if (!token) {
@@ -295,7 +295,9 @@ app.get('/api/go', (req, res) => {
     if (!decryptedUrl) {
         return res.status(400).send("Invalid or expired access token.");
     }
-    res.redirect(decryptedUrl);
+    const hostUrl = req.protocol + '://' + req.get('host');
+    const redirectedUrl = decryptedUrl.replace(/https:\/\/stream\.testuk.org/i, hostUrl);
+    res.redirect(redirectedUrl);
 });
 
 // Server-side fetching to proxy content and hide domain
@@ -309,6 +311,9 @@ app.get('/api/play', async (req, res) => {
         return res.status(400).send("Invalid or expired access token.");
     }
 
+    const hostUrl = req.protocol + '://' + req.get('host');
+    const localFallbackUrl = decryptedUrl.replace(/https:\/\/stream\.testuk.org/i, hostUrl);
+
     try {
         const response = await axios.get(decryptedUrl, {
             headers: {
@@ -320,13 +325,64 @@ app.get('/api/play', async (req, res) => {
         const finalUrl = response.request.res.responseUrl;
 
         if (contentType.includes('text/html')) {
-            res.send(response.data);
+            let html = response.data;
+            if (typeof html === 'string') {
+                html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+            }
+            res.send(html);
         } else {
-            res.redirect(finalUrl);
+            const localFinalUrl = finalUrl.replace(/https:\/\/stream\.testuk\.org/i, hostUrl);
+            res.redirect(localFinalUrl);
         }
     } catch (error) {
-        console.error("Secure stream proxy failed, falling back to direct redirect:", error.message);
-        res.redirect(decryptedUrl);
+        console.error("Secure stream proxy failed, redirecting to local fallback URL:", error.message);
+        res.redirect(localFallbackUrl);
+    }
+});
+
+// Proxy route for schedule-details
+app.get('/schedule-details', async (req, res) => {
+    const queryParams = new URLSearchParams(req.query).toString();
+    const targetUrl = `https://stream.testuk.org/schedule-details?${queryParams}`;
+    try {
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+        
+        let html = response.data;
+        if (typeof html === 'string') {
+            const hostUrl = req.protocol + '://' + req.get('host');
+            html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+        }
+        res.send(html);
+    } catch (error) {
+        console.error("schedule-details proxy failed, falling back to direct redirect:", error.message);
+        res.redirect(targetUrl);
+    }
+});
+
+// Proxy route for get-dpp-quiz
+app.get('/get-dpp-quiz', async (req, res) => {
+    const queryParams = new URLSearchParams(req.query).toString();
+    const targetUrl = `https://stream.testuk.org/get-dpp-quiz?${queryParams}`;
+    try {
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+        
+        let html = response.data;
+        if (typeof html === 'string') {
+            const hostUrl = req.protocol + '://' + req.get('host');
+            html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+        }
+        res.send(html);
+    } catch (error) {
+        console.error("get-dpp-quiz proxy failed, falling back to direct redirect:", error.message);
+        res.redirect(targetUrl);
     }
 });
 
@@ -457,7 +513,12 @@ app.get('/get-test-solution-video', async (req, res) => {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
         });
-        res.send(response.data);
+        let html = response.data;
+        if (typeof html === 'string') {
+            const hostUrl = req.protocol + '://' + req.get('host');
+            html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
+        }
+        res.send(html);
     } catch (error) {
         console.error("Solution video proxy failed, falling back to direct redirect:", error.message);
         res.redirect(targetUrl);

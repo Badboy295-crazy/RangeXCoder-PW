@@ -625,31 +625,76 @@
                     const start = sched.startTime ? new Date(sched.startTime) : null;
                     const end = sched.endTime ? new Date(sched.endTime) : null;
 
-                    let isLive = false;
-                    let isEnded = false;
+                    let tagTextLabel = 'LIVE ENDED';
+                    let tagBgColor = '#32cd32'; // positive green
 
                     if (start && end) {
-                        if (now >= start && now <= end) {
-                            isLive = true;
+                        const isToday = now.getFullYear() === start.getFullYear() &&
+                                        now.getMonth() === start.getMonth() &&
+                                        now.getDate() === start.getDate();
+                        const isFuture = start.getTime() > now.getTime() && !isToday;
+                        const isPast = start.getTime() < now.getTime() && !isToday;
+
+                        if (isFuture) {
+                            tagTextLabel = 'LIVE NOT STARTED';
+                            tagBgColor = '#4a90e2'; // beautiful blue
+                        } else if (isPast) {
+                            tagTextLabel = 'LIVE ENDED';
+                            tagBgColor = '#32cd32'; // positive green
                         } else {
-                            isEnded = true;
+                            // Same date, compare times
+                            if (now.getTime() < start.getTime()) {
+                                tagTextLabel = 'LIVE NOT STARTED';
+                                tagBgColor = '#4a90e2';
+                            } else if (now.getTime() >= start.getTime() && now.getTime() <= end.getTime()) {
+                                tagTextLabel = 'LIVE NOW';
+                                tagBgColor = '#ff3366'; // live red
+                            } else {
+                                tagTextLabel = 'LIVE ENDED';
+                                tagBgColor = '#32cd32';
+                            }
+                        }
+                    } else if (start) {
+                        const isToday = now.getFullYear() === start.getFullYear() &&
+                                        now.getMonth() === start.getMonth() &&
+                                        now.getDate() === start.getDate();
+                        const isFuture = start.getTime() > now.getTime() && !isToday;
+                        const isPast = start.getTime() < now.getTime() && !isToday;
+
+                        if (isFuture) {
+                            tagTextLabel = 'LIVE NOT STARTED';
+                            tagBgColor = '#4a90e2';
+                        } else if (isPast) {
+                            tagTextLabel = 'LIVE ENDED';
+                            tagBgColor = '#32cd32';
+                        } else {
+                            // Same date
+                            if (now.getTime() < start.getTime()) {
+                                tagTextLabel = 'LIVE NOT STARTED';
+                                tagBgColor = '#4a90e2';
+                            } else {
+                                // Default duration fallback of 2 hours
+                                const defaultEnd = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+                                if (now.getTime() <= defaultEnd.getTime()) {
+                                    tagTextLabel = 'LIVE NOW';
+                                    tagBgColor = '#ff3366';
+                                } else {
+                                    tagTextLabel = 'LIVE ENDED';
+                                    tagBgColor = '#32cd32';
+                                }
+                            }
                         }
                     } else {
                         // Fallback check
-                        isLive = (sched.lectureType === 'LIVE' && sched.status === 'LIVE') || sched.tag === 'Live';
-                        isEnded = !isLive;
+                        const isLiveCheck = (sched.lectureType === 'LIVE' && sched.status === 'LIVE') || sched.tag === 'Live';
+                        tagTextLabel = isLiveCheck ? 'LIVE NOW' : 'LIVE ENDED';
+                        tagBgColor = isLiveCheck ? '#ff3366' : '#32cd32';
                     }
+
+                    const isLive = (tagTextLabel === 'LIVE NOW');
 
                     const card = document.createElement('div');
                     card.id = `sched-card-${sched._id}`;
-
-                    let tagBgColor = '#32cd32';
-                    let tagTextLabel = 'LIVE ENDED';
-                    
-                    if (isLive) {
-                        tagBgColor = '#ff3366';
-                        tagTextLabel = 'LIVE';
-                    }
 
                     const clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
                     

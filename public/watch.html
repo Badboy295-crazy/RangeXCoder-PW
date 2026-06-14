@@ -490,6 +490,41 @@
     let hlsInst=null,shakaInst=null,lastData=null,initialized=false;
     let isSeeking=false,wasPlaying=false,isLive=false,settOpen=false;
     let playbackWatchdog=null;
+    let playbackStarted = false;
+    let checkPlaybackTimer = null;
+
+    function showPlaybackFallbackModal() {
+      if (document.getElementById('playback-fallback-modal')) return;
+
+      const modal = document.createElement('div');
+      modal.id = 'playback-fallback-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity 0.3s ease;';
+
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#12131a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;width:min(360px,90%);text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.5);color:#fff;font-family:\\\'Outfit\\\',sans-serif;';
+
+      card.innerHTML = '<div style="font-size:18px;font-weight:700;margin-bottom:12px;color:#ff3366;">Video Playback</div><div style="font-size:13px;color:#a0a5c0;line-height:1.6;margin-bottom:24px;">If the video is not playing, please click the button below to restart playback. If it has started playing, click No Need.</div><div style="display:flex;gap:12px;justify-content:center;"><button id="fallback-restart-btn" style="background:#ff3366;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;">Restart Playback</button><button id="fallback-noneed-btn" style="background:rgba(255,255,255,0.08);color:#a0a5c0;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;">No Need</button></div>';
+
+      modal.appendChild(card);
+      document.body.appendChild(modal);
+
+      requestAnimationFrame(() => { modal.style.opacity = '1'; });
+
+      document.getElementById('fallback-noneed-btn').onclick = () => {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+      };
+
+      document.getElementById('fallback-restart-btn').onclick = () => {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+          triggerSilentFallback(token);
+        }
+      };
+    }
 
     if(TOPIC_NAME)document.getElementById('player-title').textContent=TOPIC_NAME;
     vid.volume=1;vid.muted=false;volBar.value=100;
@@ -518,6 +553,16 @@
     function doToggle(){vid.paused?vid.play().catch(()=>{}):vid.pause();}
     playBtn.addEventListener('click',e=>{e.stopPropagation();doToggle();onInteraction();});
     vid.addEventListener('playing',()=>{
+      playbackStarted = true;
+      if (checkPlaybackTimer) {
+        clearTimeout(checkPlaybackTimer);
+        checkPlaybackTimer = null;
+      }
+      const modal = document.getElementById('playback-fallback-modal');
+      if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+      }
       if(playbackWatchdog){clearTimeout(playbackWatchdog);playbackWatchdog=null;}
       bufSpin.classList.remove('on');
       setPlaying(true);
@@ -954,26 +999,8 @@
     function showError(msg){
       hideLoading();
       console.error("Player error:", msg);
-      if (!isRedirectingFallback) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        if (token) {
-          isRedirectingFallback = true;
-          const pop = window.open('/api/play?token=' + encodeURIComponent(token), '_blank');
-          if (!pop || pop.closed || typeof pop.closed === 'undefined') {
-            window.location.href = '/api/play?token=' + encodeURIComponent(token);
-          } else {
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              window.location.href = '/';
-            }
-          }
-        } else {
-          errMsg.textContent = msg;
-          ovErr.classList.add('on');
-        }
-      }
+      errMsg.textContent = msg;
+      ovErr.classList.add('on');
     }
 
     /* ── URL HELPERS ───────────────────────────── */
@@ -1129,14 +1156,17 @@
       initialized=true;lastData=data;
       showLoading('Initializing…','Detecting stream type');
       
-      // Start 7-second playback watchdog
-      if(playbackWatchdog){clearTimeout(playbackWatchdog);playbackWatchdog=null;}
-      playbackWatchdog = setTimeout(()=>{
-        if(vid.paused || vid.currentTime === 0){
-          console.warn("Playback watchdog triggered: stuck loading.");
-          showError("Playback took too long to load. Redirecting to fallback stream...");
+      // Start 12-second playback popup check
+      playbackStarted = false;
+      if (checkPlaybackTimer) {
+        clearTimeout(checkPlaybackTimer);
+        checkPlaybackTimer = null;
+      }
+      checkPlaybackTimer = setTimeout(() => {
+        if (!playbackStarted && (vid.paused || vid.currentTime === 0)) {
+          showPlaybackFallbackModal();
         }
-      }, 7000);
+      }, 12000);
       try{
         if(isNativeOnly){
           if(isYT(data.url)){initYT(data.url);return;}
@@ -1254,7 +1284,7 @@
         }, 900);
         
         let redirected = false;
-        // Fallback: If API call takes longer than 5.5 seconds, redirect directly to original stream page
+        // Fallback: If API call takes longer than 12 seconds, show fallback modal
         const redirectTimeout = setTimeout(function() {
             if (redirected) return;
             redirected = true;
@@ -1264,8 +1294,17 @@
             const txt = document.getElementById('ovLoadPercent');
             if (fill) fill.style.width = '100%';
             if (txt) txt.textContent = '100%';
-            triggerSilentFallback(token);
-        }, 5500);
+            
+            const ov = document.getElementById('ovLoad');
+            if (ov) {
+                ov.style.opacity = '0';
+                setTimeout(function() {
+                    ov.style.display = 'none';
+                }, 300);
+            }
+            
+            showPlaybackFallbackModal();
+        }, 12000);
         
         try {
             const response = await fetch('/api/video-data?token=' + encodeURIComponent(token));
@@ -1325,27 +1364,23 @@
                                 document.getElementById('panelInnerMob').innerHTML = pHTML;
                             }
                         } catch (err) {
-                            console.error("Failed to initialize player, redirecting:", err);
-                            triggerSilentFallback(token);
+                            console.error("Failed to initialize player:", err);
+                            showError(err.message || 'Failed to initialize player.');
                         }
                     }
                 }, 30);
             } else {
-                clearTimeout(redirectTimeout);
                 clearInterval(stageTimer);
                 clearInterval(progressTimer);
-                redirected = true;
-                console.warn("Proxy extraction failed, redirecting...");
-                triggerSilentFallback(token);
+                console.warn("Proxy extraction failed:", resData.message);
+                showError(resData.message || 'Proxy extraction failed.');
             }
         } catch (err) {
             if (redirected) return;
-            clearTimeout(redirectTimeout);
             clearInterval(stageTimer);
             clearInterval(progressTimer);
-            redirected = true;
-            console.error("API call failed, redirecting:", err);
-            triggerSilentFallback(token);
+            console.error("API call failed:", err);
+            showError(err.message || 'API call failed.');
         }
     }
 

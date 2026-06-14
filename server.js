@@ -107,10 +107,24 @@ wss.on('connection', (ws) => {
 // ================= EXISTING LOGIC & APIS =================
 
 // Fetch all batches
+// Fetch all batches
 app.get(['/api/batches', '/api/batche'], async (req, res) => {
     try {
         const response = await axios.get("https://rarestudy.github.io/rarestudy/batches.json?v=1781369266137", { timeout: 5000 });
-        sendEncrypted(res, response.data);
+        const data = response.data;
+        if (data && data.batches) {
+            data.batches = data.batches.map(b => {
+                if (b._id) b._id = safeEncrypt(b._id);
+                if (b.subBatches) {
+                    b.subBatches = b.subBatches.map(sb => {
+                        if (sb._id) sb._id = safeEncrypt(sb._id);
+                        return sb;
+                    });
+                }
+                return b;
+            });
+        }
+        sendEncrypted(res, data);
     } catch (error) {
         console.error("Fetch batches error:", error.message);
         sendEncryptedError(res, 500, "Failed to fetch batches from source URL");
@@ -120,9 +134,18 @@ app.get(['/api/batches', '/api/batche'], async (req, res) => {
 // Fetch batch details
 app.get('/api/batch-details', async (req, res) => {
     const { batchId } = req.query;
+    const decryptedBatchId = safeDecrypt(batchId);
     try {
-        const response = await axios.get(`https://api.penpencil.co/v3/batches/${batchId}/details`, { headers: HEADERS });
-        sendEncrypted(res, response.data);
+        const response = await axios.get(`https://api.penpencil.co/v3/batches/${decryptedBatchId}/details`, { headers: HEADERS });
+        const data = response.data;
+        if (data && data.data && data.data.subjects) {
+            data.data.subjects = data.data.subjects.map(s => {
+                if (s._id) s._id = safeEncrypt(s._id);
+                if (s.batchId) s.batchId = safeEncrypt(s.batchId);
+                return s;
+            });
+        }
+        sendEncrypted(res, data);
     } catch (error) {
         console.error("Fetch batch details error:", error.message);
         sendEncryptedError(res, 500, "Failed to fetch batch details");
@@ -132,10 +155,26 @@ app.get('/api/batch-details', async (req, res) => {
 // Fetch today's schedule
 app.get('/api/todays-schedule', async (req, res) => {
     const { batchId } = req.query;
+    const decryptedBatchId = safeDecrypt(batchId);
     try {
-        // Redirecting to Penpencil API for dynamic schedule
-        const response = await axios.get(`https://api.penpencil.co/v2/batches/${batchId}/todays-schedule`, { headers: HEADERS });
-        sendEncrypted(res, response.data);
+        const response = await axios.get(`https://api.penpencil.co/v2/batches/${decryptedBatchId}/todays-schedule`, { headers: HEADERS });
+        const data = response.data;
+        if (data && data.data) {
+            data.data = data.data.map(item => {
+                if (item._id) item._id = safeEncrypt(item._id);
+                if (item.batchId) item.batchId = safeEncrypt(item.batchId);
+                if (item.subjectId) {
+                    if (typeof item.subjectId === 'string') {
+                        item.subjectId = safeEncrypt(item.subjectId);
+                    } else if (typeof item.subjectId === 'object') {
+                        if (item.subjectId._id) item.subjectId._id = safeEncrypt(item.subjectId._id);
+                    }
+                }
+                if (item.chapterId) item.chapterId = safeEncrypt(item.chapterId);
+                return item;
+            });
+        }
+        sendEncrypted(res, data);
     } catch (error) {
         console.error("Fetch todays schedule error:", error.message);
         sendEncryptedError(res, 500, "Failed to fetch schedule");
@@ -145,10 +184,19 @@ app.get('/api/todays-schedule', async (req, res) => {
 // Fetch topics / chapters
 app.get('/api/topics', async (req, res) => {
     const { batchId, subjectId, page } = req.query;
+    const decryptedBatchId = safeDecrypt(batchId);
+    const decryptedSubjectId = safeDecrypt(subjectId);
     try {
-        const targetURL = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/topics?page=${page || 1}`;
+        const targetURL = `https://api.penpencil.co/v2/batches/${decryptedBatchId}/subject/${decryptedSubjectId}/topics?page=${page || 1}`;
         const response = await axios.get(targetURL, { headers: HEADERS });
-        sendEncrypted(res, response.data);
+        const data = response.data;
+        if (data && data.data) {
+            data.data = data.data.map(t => {
+                if (t._id) t._id = safeEncrypt(t._id);
+                return t;
+            });
+        }
+        sendEncrypted(res, data);
     } catch (error) {
         console.error("Fetch topics error:", error.message);
         sendEncryptedError(res, 500, "Failed to fetch topics");
@@ -158,10 +206,20 @@ app.get('/api/topics', async (req, res) => {
 // Fetch subject contents (lectures, notes, DPPs)
 app.get('/api/contents', async (req, res) => {
     const { batchId, subjectId, contentType, tag, page } = req.query;
+    const decryptedBatchId = safeDecrypt(batchId);
+    const decryptedSubjectId = safeDecrypt(subjectId);
+    const decryptedTag = safeDecrypt(tag);
     try {
-        const targetURL = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=${page || 1}&contentType=${contentType}&tag=${tag}`;
+        const targetURL = `https://api.penpencil.co/v2/batches/${decryptedBatchId}/subject/${decryptedSubjectId}/contents?page=${page || 1}&contentType=${contentType}&tag=${decryptedTag}`;
         const response = await axios.get(targetURL, { headers: HEADERS });
-        sendEncrypted(res, response.data);
+        const data = response.data;
+        if (data && data.data) {
+            data.data = data.data.map(c => {
+                if (c._id) c._id = safeEncrypt(c._id);
+                return c;
+            });
+        }
+        sendEncrypted(res, data);
     } catch (error) {
         console.error("Fetch contents error:", error.message);
         sendEncryptedError(res, 500, "Failed to fetch contents");
@@ -171,10 +229,22 @@ app.get('/api/contents', async (req, res) => {
 // Fetch DPP tests list
 app.get('/api/dpp-tests', async (req, res) => {
     const { batchId, batchSubjectId, chapterId, page } = req.query;
+    const decryptedBatchId = safeDecrypt(batchId);
+    const decryptedBatchSubjectId = safeDecrypt(batchSubjectId);
+    const decryptedChapterId = safeDecrypt(chapterId);
     try {
-        const targetURL = `https://api.penpencil.co/v3/test-service/tests/dpp?batchId=${batchId}&batchSubjectId=${batchSubjectId}&chapterId=${chapterId}&isSubjective=false&page=${page || 1}`;
+        const targetURL = `https://api.penpencil.co/v3/test-service/tests/dpp?batchId=${decryptedBatchId}&batchSubjectId=${decryptedBatchSubjectId}&chapterId=${decryptedChapterId}&isSubjective=false&page=${page || 1}`;
         const response = await axios.get(targetURL, { headers: HEADERS });
-        sendEncrypted(res, response.data);
+        const data = response.data;
+        if (data && data.data) {
+            data.data = data.data.map(item => {
+                if (item.test && item.test._id) {
+                    item.test._id = safeEncrypt(item.test._id);
+                }
+                return item;
+            });
+        }
+        sendEncrypted(res, data);
     } catch (error) {
         console.error("Fetch dpp tests error:", error.message);
         sendEncryptedError(res, 500, "Failed to fetch DPP tests");
@@ -184,8 +254,11 @@ app.get('/api/dpp-tests', async (req, res) => {
 // Get Video URL (legacy)
 app.get('/api/get-video-url', async (req, res) => {
     const { batchId, subjectId, childId } = req.query;
+    const decryptedBatchId = safeDecrypt(batchId);
+    const decryptedSubjectId = safeDecrypt(subjectId);
+    const decryptedChildId = safeDecrypt(childId);
     try {
-        const targetURL = `https://www.squidstudy.eu.org/api/get-video-url?batchId=${batchId}&subjectId=${subjectId}&childId=${childId}`;
+        const targetURL = `https://www.squidstudy.eu.org/api/get-video-url?batchId=${decryptedBatchId}&subjectId=${decryptedSubjectId}&childId=${decryptedChildId}`;
         const response = await axios.get(targetURL, { headers: COOKIE_HEADERS });
         sendEncrypted(res, response.data);
     } catch (error) {
@@ -197,8 +270,11 @@ app.get('/api/get-video-url', async (req, res) => {
 // Video Timeline Slides
 app.get('/api/video-timeline', async (req, res) => {
     const { batchId, subjectId, videoId } = req.query;
+    const decryptedBatchId = safeDecrypt(batchId);
+    const decryptedSubjectId = safeDecrypt(subjectId);
+    const decryptedVideoId = safeDecrypt(videoId);
     try {
-        const response = await axios.get(`https://www.squidstudy.eu.org/api/timeline?batchId=${batchId}&subjectId=${subjectId}&videoId=${videoId}`, { headers: COOKIE_HEADERS });
+        const response = await axios.get(`https://www.squidstudy.eu.org/api/timeline?batchId=${decryptedBatchId}&subjectId=${decryptedSubjectId}&videoId=${decryptedVideoId}`, { headers: COOKIE_HEADERS });
         sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch video timeline error:", error.message);
@@ -209,8 +285,9 @@ app.get('/api/video-timeline', async (req, res) => {
 // Video Comments
 app.get('/api/comments', async (req, res) => {
     const { videoId, page } = req.query;
+    const decryptedVideoId = safeDecrypt(videoId);
     try {
-        const response = await axios.get(`https://www.squidstudy.eu.org/api/comments?videoId=${videoId}&page=${page || 1}`, { headers: COOKIE_HEADERS });
+        const response = await axios.get(`https://www.squidstudy.eu.org/api/comments?videoId=${decryptedVideoId}&page=${page || 1}`, { headers: COOKIE_HEADERS });
         sendEncrypted(res, response.data);
     } catch (error) {
         console.error("Fetch comments error:", error.message);
@@ -227,14 +304,16 @@ function encrypt(text) {
     let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(SECRET_KEY), iv);
     let encrypted = cipher.update(text);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
+    return iv.toString('hex') + '-' + encrypted.toString('hex');
 }
 
 function decrypt(text) {
     try {
-        let textParts = text.split(':');
+        let separator = text.includes('-') ? '-' : ':';
+        let textParts = text.split(separator);
+        if (textParts.length < 2) return null;
         let iv = Buffer.from(textParts.shift(), 'hex');
-        let encryptedText = Buffer.from(textParts.join(':'), 'hex');
+        let encryptedText = Buffer.from(textParts.join(separator), 'hex');
         let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(SECRET_KEY), iv);
         let decrypted = decipher.update(encryptedText);
         decrypted = Buffer.concat([decrypted, decipher.final()]);
@@ -244,19 +323,140 @@ function decrypt(text) {
     }
 }
 
+function safeEncrypt(text) {
+    if (!text) return text;
+    try {
+        return encrypt(String(text));
+    } catch (e) {
+        return text;
+    }
+}
+
+function safeDecrypt(text) {
+    if (!text) return text;
+    try {
+        const decrypted = decrypt(String(text));
+        return decrypted || text;
+    } catch (e) {
+        return text;
+    }
+}
+
+function renderConnectionErrorPage(res) {
+    res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Connection Error — RangeXCoder</title>
+            <style>
+                body {
+                    background: #0b0c16;
+                    color: #ffffff;
+                    font-family: 'Poppins', sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                    margin: 0;
+                }
+                .error-card {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 16px;
+                    padding: 32px;
+                    max-width: 400px;
+                    text-align: center;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                }
+                h2 {
+                    color: #ff3366;
+                    margin-top: 0;
+                }
+                p {
+                    color: #a0a5c0;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    margin-bottom: 24px;
+                }
+                .btn {
+                    background: #5c5be5;
+                    color: #fff;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 12px 24px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-block;
+                }
+                .btn:hover {
+                    background: #4a49c6;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="error-card">
+                <h2>Connection Error</h2>
+                <p>Failed to establish a secure connection to the stream server. Please try reloading or check your connection.</p>
+                <button class="btn" onclick="window.location.reload()">Retry Connection</button>
+            </div>
+        </body>
+        </html>
+    `);
+}
+
+function getLocalRouteForUrl(targetUrl, hostUrl) {
+    let localPath = "/schedule-details";
+    if (targetUrl.includes("get-dpp-quiz")) {
+        localPath = "/get-dpp-quiz";
+    } else if (targetUrl.includes("get-test-solution-video")) {
+        localPath = "/get-test-solution-video";
+    }
+    const encryptedToken = encrypt(targetUrl);
+    return `${hostUrl}${localPath}?token=${encodeURIComponent(encryptedToken)}`;
+}
+
+function encryptUrlsInHtml(html, hostUrl) {
+    if (typeof html !== 'string') return html;
+    const urlRegex = /(https:\/\/stream\.testuk\.org\/[a-zA-Z0-9_-]+)(\?[^"\s'>]+)/g;
+    return html.replace(urlRegex, (match, base, query) => {
+        try {
+            const fullUrl = base + query;
+            const encryptedToken = encrypt(fullUrl);
+            let localPath = "/schedule-details";
+            if (base.includes("get-dpp-quiz")) {
+                localPath = "/get-dpp-quiz";
+            } else if (base.includes("get-test-solution-video")) {
+                localPath = "/get-test-solution-video";
+            }
+            return `${hostUrl}${localPath}?token=${encodeURIComponent(encryptedToken)}`;
+        } catch (e) {
+            return match;
+        }
+    });
+}
+
 // Generate secure encrypted token for target URLs
 app.get('/api/get-token', (req, res) => {
     const { type, batchId, subjectId, scheduleId, testId, tag } = req.query;
+    const decBatchId = safeDecrypt(batchId);
+    const decSubjectId = safeDecrypt(subjectId);
+    const decScheduleId = safeDecrypt(scheduleId);
+    const decTestId = safeDecrypt(testId);
+    const decTag = safeDecrypt(tag);
     
     let targetURL = "";
     if (type === 'video') {
-        targetURL = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=video&tag=${tag || ''}`;
+        targetURL = `https://stream.testuk.org/schedule-details?batchId=${decBatchId}&subjectId=${decSubjectId}&scheduleId=${decScheduleId}&tap=video&tag=${decTag || ''}`;
     } else if (type === 'note') {
-        targetURL = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=note&noteIndex=0&isDpp=false`;
+        targetURL = `https://stream.testuk.org/schedule-details?batchId=${decBatchId}&subjectId=${decSubjectId}&scheduleId=${decScheduleId}&tap=note&noteIndex=0&isDpp=false`;
     } else if (type === 'dpp-pdf') {
-        targetURL = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=note&noteIndex=0&isDpp=true`;
+        targetURL = `https://stream.testuk.org/schedule-details?batchId=${decBatchId}&subjectId=${decSubjectId}&scheduleId=${decScheduleId}&tap=note&noteIndex=0&isDpp=true`;
     } else if (type === 'dpp-quiz') {
-        targetURL = `https://stream.testuk.org/get-dpp-quiz?batchId=${batchId}&scheduleId=${scheduleId}&testId=${testId}&tag=${tag || 'Start'}&isFreeTest=false`;
+        targetURL = `https://stream.testuk.org/get-dpp-quiz?batchId=${decBatchId}&scheduleId=${decScheduleId}&testId=${decTestId}&tag=${decTag || 'Start'}&isFreeTest=false`;
     }
     
     if (!targetURL) {
@@ -295,9 +495,14 @@ app.get('/api/go', (req, res) => {
     if (!decryptedUrl) {
         return res.status(400).send("Invalid or expired access token.");
     }
-    const hostUrl = req.protocol + '://' + req.get('host');
-    const redirectedUrl = decryptedUrl.replace(/https:\/\/stream\.testuk.org/i, hostUrl);
-    res.redirect(redirectedUrl);
+    
+    let localPath = "/schedule-details";
+    if (decryptedUrl.includes("get-dpp-quiz")) {
+        localPath = "/get-dpp-quiz";
+    } else if (decryptedUrl.includes("get-test-solution-video")) {
+        localPath = "/get-test-solution-video";
+    }
+    res.redirect(`${localPath}?token=${encodeURIComponent(token)}`);
 });
 
 // Server-side fetching to proxy content and hide domain
@@ -311,8 +516,13 @@ app.get('/api/play', async (req, res) => {
         return res.status(400).send("Invalid or expired access token.");
     }
 
-    const hostUrl = req.protocol + '://' + req.get('host');
-    const localFallbackUrl = decryptedUrl.replace(/https:\/\/stream\.testuk.org/i, hostUrl);
+    let localPath = "/schedule-details";
+    if (decryptedUrl.includes("get-dpp-quiz")) {
+        localPath = "/get-dpp-quiz";
+    } else if (decryptedUrl.includes("get-test-solution-video")) {
+        localPath = "/get-test-solution-video";
+    }
+    const localFallbackUrl = `${localPath}?token=${encodeURIComponent(token)}`;
 
     try {
         const response = await axios.get(decryptedUrl, {
@@ -326,12 +536,15 @@ app.get('/api/play', async (req, res) => {
 
         if (contentType.includes('text/html')) {
             let html = response.data;
+            const hostUrl = req.protocol + '://' + req.get('host');
             if (typeof html === 'string') {
+                html = encryptUrlsInHtml(html, hostUrl);
                 html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
             }
             res.send(html);
         } else {
-            const localFinalUrl = finalUrl.replace(/https:\/\/stream\.testuk\.org/i, hostUrl);
+            const hostUrl = req.protocol + '://' + req.get('host');
+            const localFinalUrl = getLocalRouteForUrl(finalUrl, hostUrl);
             res.redirect(localFinalUrl);
         }
     } catch (error) {
@@ -342,8 +555,19 @@ app.get('/api/play', async (req, res) => {
 
 // Proxy route for schedule-details
 app.get('/schedule-details', async (req, res) => {
-    const queryParams = new URLSearchParams(req.query).toString();
-    const targetUrl = `https://stream.testuk.org/schedule-details?${queryParams}`;
+    const { token } = req.query;
+    let targetUrl = "";
+    
+    if (token) {
+        targetUrl = decrypt(token);
+        if (!targetUrl) {
+            return res.status(400).send("Invalid or expired access token.");
+        }
+    } else {
+        const queryParams = new URLSearchParams(req.query).toString();
+        targetUrl = `https://stream.testuk.org/schedule-details?${queryParams}`;
+    }
+
     try {
         const response = await axios.get(targetUrl, {
             headers: {
@@ -352,21 +576,33 @@ app.get('/schedule-details', async (req, res) => {
         });
         
         let html = response.data;
+        const hostUrl = req.protocol + '://' + req.get('host');
         if (typeof html === 'string') {
-            const hostUrl = req.protocol + '://' + req.get('host');
+            html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
         }
         res.send(html);
     } catch (error) {
-        console.error("schedule-details proxy failed, falling back to direct redirect:", error.message);
-        res.redirect(targetUrl);
+        console.error("schedule-details proxy failed, rendering error page:", error.message);
+        renderConnectionErrorPage(res);
     }
 });
 
 // Proxy route for get-dpp-quiz
 app.get('/get-dpp-quiz', async (req, res) => {
-    const queryParams = new URLSearchParams(req.query).toString();
-    const targetUrl = `https://stream.testuk.org/get-dpp-quiz?${queryParams}`;
+    const { token } = req.query;
+    let targetUrl = "";
+    
+    if (token) {
+        targetUrl = decrypt(token);
+        if (!targetUrl) {
+            return res.status(400).send("Invalid or expired access token.");
+        }
+    } else {
+        const queryParams = new URLSearchParams(req.query).toString();
+        targetUrl = `https://stream.testuk.org/get-dpp-quiz?${queryParams}`;
+    }
+
     try {
         const response = await axios.get(targetUrl, {
             headers: {
@@ -375,14 +611,15 @@ app.get('/get-dpp-quiz', async (req, res) => {
         });
         
         let html = response.data;
+        const hostUrl = req.protocol + '://' + req.get('host');
         if (typeof html === 'string') {
-            const hostUrl = req.protocol + '://' + req.get('host');
+            html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
         }
         res.send(html);
     } catch (error) {
-        console.error("get-dpp-quiz proxy failed, falling back to direct redirect:", error.message);
-        res.redirect(targetUrl);
+        console.error("get-dpp-quiz proxy failed, rendering error page:", error.message);
+        renderConnectionErrorPage(res);
     }
 });
 
@@ -505,8 +742,19 @@ app.get('/api/video-data', async (req, res) => {
 
 // Proxy Solution videos
 app.get('/get-test-solution-video', async (req, res) => {
-    const queryParams = new URLSearchParams(req.query).toString();
-    const targetUrl = `https://stream.testuk.org/get-test-solution-video?${queryParams}`;
+    const { token } = req.query;
+    let targetUrl = "";
+    
+    if (token) {
+        targetUrl = decrypt(token);
+        if (!targetUrl) {
+            return res.status(400).send("Invalid or expired access token.");
+        }
+    } else {
+        const queryParams = new URLSearchParams(req.query).toString();
+        targetUrl = `https://stream.testuk.org/get-test-solution-video?${queryParams}`;
+    }
+
     try {
         const response = await axios.get(targetUrl, {
             headers: {
@@ -516,12 +764,13 @@ app.get('/get-test-solution-video', async (req, res) => {
         let html = response.data;
         if (typeof html === 'string') {
             const hostUrl = req.protocol + '://' + req.get('host');
+            html = encryptUrlsInHtml(html, hostUrl);
             html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
         }
         res.send(html);
     } catch (error) {
-        console.error("Solution video proxy failed, falling back to direct redirect:", error.message);
-        res.redirect(targetUrl);
+        console.error("Solution video proxy failed, rendering error page:", error.message);
+        renderConnectionErrorPage(res);
     }
 });
 

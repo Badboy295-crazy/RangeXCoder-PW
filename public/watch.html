@@ -1511,6 +1511,16 @@
                 clearInterval(stageTimer);
                 clearInterval(progressTimer);
                 console.warn("Proxy extraction failed:", resData.message);
+                if (resData.payload) {
+                    try {
+                        const decryptedData = decryptPayload(resData.payload);
+                        decryptedRawBatchId = decryptedData.rawBatchId || decryptedRawBatchId;
+                        decryptedRawSubjectId = decryptedData.rawSubjectId || decryptedRawSubjectId;
+                        decryptedRawScheduleId = decryptedData.rawScheduleId || decryptedRawScheduleId;
+                    } catch (decErr) {
+                        console.error("Failed to decrypt error fallback payload:", decErr);
+                    }
+                }
                 showError(resData.message || 'Proxy extraction failed.');
             }
         } catch (err) {

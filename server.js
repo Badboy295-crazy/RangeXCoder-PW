@@ -485,7 +485,13 @@ app.get('/api/get-token', (req, res) => {
     
     try {
         const encryptedToken = encrypt(targetURL);
-        res.json({ success: true, token: encryptedToken });
+        res.json({ 
+            success: true, 
+            token: encryptedToken,
+            rawBatchId: decBatchId || "",
+            rawSubjectId: decSubjectId || "",
+            rawScheduleId: decScheduleId || ""
+        });
     } catch (error) {
         console.error("Encryption error:", error.message);
         res.status(500).json({ success: false, message: "Failed to secure stream URL" });
@@ -951,8 +957,23 @@ app.get('/api/video-data', async (req, res) => {
 
     } catch (error) {
         console.error("Video data extraction failed, returning fallback:", error.message);
+        let rawBatchId = "";
+        let rawSubjectId = "";
+        let rawScheduleId = "";
+        try {
+            const parsedUrl = new URL(decryptedUrl);
+            rawBatchId = parsedUrl.searchParams.get('batchId') || "";
+            rawSubjectId = parsedUrl.searchParams.get('subjectId') || "";
+            rawScheduleId = parsedUrl.searchParams.get('scheduleId') || "";
+        } catch (parseErr) {
+            console.error("Failed to parse decrypted URL for raw IDs in error fallback:", parseErr.message);
+        }
+
         const fallbackData = {
-            fallbackUrl: decryptedUrl
+            fallbackUrl: decryptedUrl,
+            rawBatchId: rawBatchId,
+            rawSubjectId: rawSubjectId,
+            rawScheduleId: rawScheduleId
         };
         const encryptedFallback = encryptPayload(fallbackData);
         res.json({

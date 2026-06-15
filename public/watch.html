@@ -1705,6 +1705,21 @@
       });
     }
 
+    function parseTimestampToSeconds(ts) {
+      if (!ts) return 0;
+      ts = String(ts).trim();
+      if (!ts.includes(':')) {
+        return parseFloat(ts) || 0;
+      }
+      const parts = ts.split(':').map(p => parseFloat(p) || 0);
+      if (parts.length === 2) {
+        return parts[0] * 60 + parts[1];
+      } else if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      }
+      return parseFloat(ts) || 0;
+    }
+
     function buildPanelHTML() {
       // 1. Build direct Notes button
       let notesBtnHTML = "";
@@ -1737,7 +1752,7 @@
         slidesHTML = '<div style="padding:20px; text-align:center; color:var(--muted); font-size:12px;">No timeline slides available for this video.</div>';
       } else {
         slidesArray.forEach((slide) => {
-          const secs = parseInt(slide.timeStamp, 10) || 0;
+          const secs = parseTimestampToSeconds(slide.timeStamp);
           let imgUrl = "";
           if (slide.img && slide.img.baseUrl && slide.img.key) {
             imgUrl = slide.img.baseUrl + slide.img.key;
@@ -1841,7 +1856,7 @@
       const currentTime = vid.currentTime;
       let activeIndex = -1;
       for (let i = 0; i < slidesArray.length; i++) {
-        const slideSecs = parseInt(slidesArray[i].timeStamp, 10) || 0;
+        const slideSecs = parseTimestampToSeconds(slidesArray[i].timeStamp);
         if (slideSecs <= currentTime) {
           activeIndex = i;
         }
@@ -1855,7 +1870,21 @@
           cards.forEach((card, idx) => {
             if (idx === activeIndex) {
               card.classList.add('cur');
-              card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              
+              // Calculate relative scroll inside .panel-body without page jumps
+              const panelBody = card.closest('.panel-body');
+              if (panelBody) {
+                const cardRect = card.getBoundingClientRect();
+                const panelRect = panelBody.getBoundingClientRect();
+                const relativeTop = cardRect.top - panelRect.top + panelBody.scrollTop;
+                const cardHeight = cardRect.height;
+                const panelHeight = panelRect.height;
+                const targetScroll = relativeTop - (panelHeight / 2) + (cardHeight / 2);
+                panelBody.scrollTo({
+                  top: targetScroll,
+                  behavior: 'smooth'
+                });
+              }
             } else {
               card.classList.remove('cur');
             }

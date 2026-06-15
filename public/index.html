@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RangeXCoder | Transforming Study into Achievement</title>
+    <title>Badboy's PW Zone | Transforming Study into Achievement</title>
     <link rel="icon" type="image/png" href="https://static.pw.live/5eb393ee95fab7468a79d189/ADMIN/a8a8837e-fa4d-4355-bbd5-214512154c23.png">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -26,8 +26,8 @@
             --text-muted: #64748b;
             --glass-bg: rgba(255, 255, 255, 0.45);
             --glass-border: rgba(255, 255, 255, 0.6);
-            --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
-            --neon-glow: 0 0 30px rgba(99, 102, 241, 0.2);
+            --card-shadow: 0 30px 60px rgba(0, 0, 0, 0.04);
+            --neon-glow: 0 0 35px rgba(99, 102, 241, 0.25);
             --perspective: 1500px;
         }
 
@@ -180,7 +180,7 @@
         /* 1. Hero Section */
         .hero-layout {
             display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
+            grid-template-columns: 1.15fr 0.85fr;
             gap: 50px;
             align-items: center;
             min-height: 85vh;
@@ -466,6 +466,256 @@
         @keyframes hologramFloat {
             0% { transform: translateZ(125px) rotateX(10deg) translateY(0px); opacity: 0.8; }
             100% { transform: translateZ(145px) rotateX(20deg) translateY(-10px); opacity: 1; }
+        }
+
+        /* Simulated Mobile Showcase Section */
+        .showcase-wrapper {
+            background: linear-gradient(135deg, rgba(99,102,241,0.03), rgba(236,72,153,0.03));
+            border-radius: 40px;
+            padding: 60px 40px;
+            border: 1px solid rgba(99, 102, 241, 0.08);
+            margin: 60px 0;
+        }
+
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .mockup-container {
+            position: relative;
+            width: 320px;
+            height: 640px;
+            background: #0f172a;
+            border: 12px solid #334155;
+            border-radius: 48px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        /* Speaker & Camera notch */
+        .mockup-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 25px;
+            background: #334155;
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 18px;
+            z-index: 10;
+        }
+
+        .mockup-screen {
+            position: absolute;
+            inset: 0;
+            background: #f8fafc;
+            padding: 35px 16px 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        /* Simulated Mobile Dashboard App Interface */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .app-logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--primary-accent);
+        }
+
+        .app-user {
+            font-size: 11px;
+            font-weight: 700;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        /* Video Player Frame Simulated Inside App */
+        .simulated-player {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            background: #1e293b;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .sim-video-bg {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, #334155 0%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animated Progress seeking indicator */
+        .sim-play-btn {
+            font-size: 32px;
+            color: #ffffff;
+            animation: playPulse 2s infinite;
+        }
+
+        @keyframes playPulse {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+
+        .sim-timeline-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #6366f1;
+            width: 35%;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sim-time-stamp {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            font-size: 9px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 700;
+            background: rgba(0,0,0,0.5);
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
+
+        /* Slides Grid Simulated Inside App */
+        .sim-panel {
+            flex-grow: 1;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .sim-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+        }
+
+        .sim-tab {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            padding: 3px 6px;
+        }
+
+        .sim-tab.active {
+            color: var(--primary-accent);
+            border-bottom: 2px solid var(--primary-accent);
+        }
+
+        .sim-resource-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .sim-res-btn {
+            font-size: 9px;
+            font-weight: 700;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-color);
+        }
+
+        .sim-slides-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .sim-slide-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .sim-slide-card.active {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.04);
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.1);
+        }
+
+        .sim-slide-thumb {
+            height: 40px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #a5b4fc 0%, #c7d2fe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .sim-slide-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        /* Interactive instruction tooltip box next to simulated mobile notch */
+        .showcase-instruction {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .guide-step-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 24px;
+            border: 1.5px solid rgba(99, 102, 241, 0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+            transition: all 0.3s;
+        }
+
+        .guide-step-card:hover {
+            border-color: var(--primary-accent);
+            transform: translateX(5px);
         }
 
         /* 3. Emotional Section Grid */
@@ -1063,11 +1313,11 @@
 
         /* Responsive styling adjustment */
         @media (max-width: 992px) {
-            .hero-layout, .desk-showcase-panel, .final-cta-layout {
+            .hero-layout, .showcase-grid, .desk-showcase-panel, .final-cta-layout {
                 grid-template-columns: 1fr;
                 gap: 40px;
             }
-            .hero-left, .desk-info-display, .cta-right {
+            .hero-left, .showcase-instruction, .desk-info-display, .cta-right {
                 text-align: center;
                 align-items: center;
             }
@@ -1102,7 +1352,7 @@
         <div class="hero-layout">
             <div class="hero-left">
                 <div class="hero-badge">
-                    <i class="fa-solid fa-graduation-cap"></i> Transforming Study into Achievement
+                    <i class="fa-solid fa-bolt"></i> RangeXCoder Exclusive
                 </div>
                 <h1 class="hero-heading">Learn Smarter.<br>Build Your Future.<br><span class="gradient-txt">One Study Session at a Time.</span></h1>
                 <p class="hero-sub">
@@ -1110,7 +1360,7 @@
                 </p>
                 <div class="hero-buttons">
                     <a href="batches.html" class="btn-primary">Start Learning <i class="fa-solid fa-arrow-right"></i></a>
-                    <a href="#desk-section" class="btn-secondary">Explore Resources</a>
+                    <a href="#simulated-mockup-section" class="btn-secondary">Watch How it Works</a>
                 </div>
             </div>
 
@@ -1142,6 +1392,100 @@
                 <div class="hologram-ui" style="top: 25%; right: 15%;">
                     <i class="fa-solid fa-chart-line"></i> Analytics: +24% Focus
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW INTERACTIVE MOCKUP SHOWCASE: How to watch lectures & seek slides -->
+    <div class="section-container" id="simulated-mockup-section">
+        <div class="showcase-wrapper">
+            <div class="showcase-grid">
+                
+                <!-- Phone Mockup simulating timeline slides seek behavior -->
+                <div class="mockup-container">
+                    <div class="mockup-notch"></div>
+                    <div class="mockup-screen">
+                        
+                        <div class="app-header">
+                            <div class="app-logo"><i class="fa-solid fa-atom"></i> PW Zone</div>
+                            <div class="app-user">badboy</div>
+                        </div>
+
+                        <!-- Simulated video player container -->
+                        <div class="simulated-player">
+                            <div class="sim-video-bg">
+                                <i class="fa-solid fa-circle-play sim-play-btn" id="simPlayerIcon"></i>
+                            </div>
+                            <div class="sim-timeline-bar" id="simTimeline"></div>
+                            <div class="sim-time-stamp" id="simTimeDisplay">00:00</div>
+                        </div>
+
+                        <!-- App interactive content panel -->
+                        <div class="sim-panel">
+                            <div class="sim-tabs">
+                                <div class="sim-tab active">Slides Grid</div>
+                                <div class="sim-tab">Class Note</div>
+                            </div>
+                            
+                            <div class="sim-resource-btns">
+                                <div class="sim-res-btn"><i class="fa-solid fa-file-pdf" style="color:#ef4444;"></i> Note.pdf</div>
+                                <div class="sim-res-btn"><i class="fa-solid fa-scroll" style="color:#eab308;"></i> DPP.pdf</div>
+                            </div>
+
+                            <p style="font-size:9px; color:var(--text-muted); font-weight:700;">Click any slide to seek player:</p>
+                            
+                            <div class="sim-slides-grid">
+                                
+                                <div class="sim-slide-card active" onclick="simSeek(this, 10, '00:10')">
+                                    <div class="sim-slide-thumb">Slide 1</div>
+                                    <div class="sim-slide-meta"><span>#1</span><span>00:10</span></div>
+                                </div>
+
+                                <div class="sim-slide-card" onclick="simSeek(this, 45, '00:45')">
+                                    <div class="sim-slide-thumb" style="background:linear-gradient(135deg, #fbcfe8, #f472b6)">Slide 2</div>
+                                    <div class="sim-slide-meta"><span>#2</span><span>00:45</span></div>
+                                </div>
+
+                                <div class="sim-slide-card" onclick="simSeek(this, 80, '01:20')">
+                                    <div class="sim-slide-thumb" style="background:linear-gradient(135deg, #99f6e4, #2dd4bf)">Slide 3</div>
+                                    <div class="sim-slide-meta"><span>#3</span><span>01:20</span></div>
+                                </div>
+
+                                <div class="sim-slide-card" onclick="simSeek(this, 120, '02:00')">
+                                    <div class="sim-slide-thumb" style="background:linear-gradient(135deg, #fed7aa, #fb923c)">Slide 4</div>
+                                    <div class="sim-slide-meta"><span>#4</span><span>02:00</span></div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Animated features guide explanations -->
+                <div class="showcase-instruction">
+                    <div class="section-tagline"><i class="fa-solid fa-mobile-screen"></i> Live Interaction Demo</div>
+                    <h2 class="section-title">See How lectures Work</h2>
+                    <p class="section-desc">
+                        No more traditional scanning! Try clicking the Slide Cards inside the smartphone mockup on the left. The simulated player instantly seeks to the matching timestamp.
+                    </p>
+
+                    <div class="guide-step-card">
+                        <h4 style="font-family:'Outfit'; font-size:16px; font-weight:800; color:var(--text-color); margin-bottom:6px;"><i class="fa-solid fa-mouse-pointer" style="color:var(--primary-accent); margin-right:8px;"></i> 1. Click Any Slide Thumbnail</h4>
+                        <p style="font-size:13.5px; color:var(--text-muted); line-height:1.5;">Every slide is mapped to the exact second the teacher writes it. Clicking it auto-seeks the stream player instantly.</p>
+                    </div>
+
+                    <div class="guide-step-card">
+                        <h4 style="font-family:'Outfit'; font-size:16px; font-weight:800; color:var(--text-color); margin-bottom:6px;"><i class="fa-solid fa-bookmark" style="color:var(--teal-accent); margin-right:8px;"></i> 2. Auto-Highlight Active Slide</h4>
+                        <p style="font-size:13.5px; color:var(--text-muted); line-height:1.5;">As you watch lectures, the timeline list automatically highlights and centers the current active slide card.</p>
+                    </div>
+
+                    <div class="guide-step-card">
+                        <h4 style="font-family:'Outfit'; font-size:16px; font-weight:800; color:var(--text-color); margin-bottom:6px;"><i class="fa-solid fa-file-pdf" style="color:var(--secondary-accent); margin-right:8px;"></i> 3. Download Notes & DPP Sheets</h4>
+                        <p style="font-size:13.5px; color:var(--text-muted); line-height:1.5;">Access corresponding resources directly above slides inside the tab pane. Study offline without hassle.</p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -1393,7 +1737,7 @@
     <div class="section-container">
         <div class="motivation-wall">
             <div class="stars-overlay"></div>
-            <h2 class="motivate-heading">Your future self is watching.<br>Don't give up today.</h2>
+            <h2 class="motivate-heading">Your future self is watching, badboy.<br>Don't give up today.</h2>
             <p class="motivate-sub">Small sessions accumulate into big milestones.</p>
             
             <div class="quotes-carousel">
@@ -1401,6 +1745,8 @@
                 <div class="quote-slide" id="q1">Discipline beats motivation.</div>
                 <div class="quote-slide" id="q2">Small progress is still progress.</div>
                 <div class="quote-slide" id="q3">One chapter closer.</div>
+                <div class="quote-slide" id="q4">Consistency beats talent when talent doesn't work hard.</div>
+                <div class="quote-slide" id="q5">Make badboy proud of your results.</div>
             </div>
         </div>
     </div>
@@ -1436,7 +1782,7 @@
     <!-- FOOTER -->
     <div class="section-container" style="padding-top:0;">
         <div class="bottom-credits">
-            <span>RangeXCoder PW Zone Utility Engine</span>
+            <span>RangeXCoder PW Zone Utility Engine | Built for badboy</span>
             <div class="bottom-links">
                 <a href="batches.html">Workspace</a>
                 <span>&bull;</span>
@@ -1457,12 +1803,33 @@
 
         // Motivational Quote Rotator inside motivation wall
         let activeQuoteIdx = 0;
-        const quotesList = ['q0', 'q1', 'q2', 'q3'];
+        const quotesList = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5'];
         setInterval(() => {
             document.getElementById(quotesList[activeQuoteIdx]).classList.remove('visible');
             activeQuoteIdx = (activeQuoteIdx + 1) % quotesList.length;
             document.getElementById(quotesList[activeQuoteIdx]).classList.add('visible');
         }, 3000);
+
+        // Simulated Mobile Mockup Video Seeking Logic
+        function simSeek(slideCard, pctValue, timeStr) {
+            // Remove active classes
+            document.querySelectorAll('.sim-slide-card').forEach(card => card.classList.remove('active'));
+            slideCard.classList.add('active');
+
+            const timeline = document.getElementById('simTimeline');
+            const display = document.getElementById('simTimeDisplay');
+            const playerIcon = document.getElementById('simPlayerIcon');
+
+            // Set progress width and text
+            timeline.style.width = pctValue + '%';
+            display.textContent = timeStr;
+
+            // Flash play icon as click seek indicator
+            playerIcon.style.color = '#14b8a6';
+            setTimeout(() => {
+                playerIcon.style.color = '#ffffff';
+            }, 500);
+        }
 
         // Desk clicking inspector features
         let focusTimer = null;
@@ -1501,8 +1868,8 @@
                     "\"Discipline beats motivation every day.\"",
                     "\"Focus on consistency, not speed.\"",
                     "\"Small steps accumulating hourly transform results.\"",
-                    "\"Your future self is watching. Stay dedicated.\"",
-                    "\"Believe you can, and you're halfway there.\""
+                    "\"Hey badboy, your future self is watching. Stay dedicated.\"",
+                    "\"Believe you can, badboy, and you are halfway there.\""
                 ];
                 const randQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
                 descEl.textContent = `A yellow sticky note containing motivation: ${randQuote}`;
@@ -1523,7 +1890,7 @@
                     if (focusSeconds === 0) {
                         if (focusMinutes === 0) {
                             clearInterval(focusTimer);
-                            alert("Time is up! Grab a water break.");
+                            alert("Time is up badboy! Grab a water break.");
                             focusMinutes = 25;
                             focusSeconds = 0;
                             focusRunning = false;
@@ -1537,15 +1904,6 @@
                     }
                     updatePomodoroDisplay();
                 }, 1000);
-            }
-        }
-
-        function updatePomodoroDisplay() {
-            const display = document.getElementById('pomTimerDisplay');
-            if (display) {
-                const m = focusMinutes.toString().padStart(2, '0');
-                const s = focusSeconds.toString().padStart(2, '0');
-                display.textContent = `${m}:${s}`;
             }
         }
 
@@ -1576,7 +1934,6 @@
                     clearInterval(timer);
                 }
                 
-                // Format numbers over 10000 for look
                 if (targetVal >= 1000000) {
                     el.textContent = (current / 1000000).toFixed(1) + " Million" + suffix;
                 } else if (targetVal >= 10000) {
@@ -1602,7 +1959,6 @@
         // Standard 3D Mouse Parallax effect triggers
         const bodyEl = document.body;
         bodyEl.addEventListener('mousemove', (e) => {
-            // Apply slight interactive perspective changes to characters or timelines
             const items = document.querySelectorAll('.test-card');
             items.forEach((item, idx) => {
                 const rect = item.getBoundingClientRect();

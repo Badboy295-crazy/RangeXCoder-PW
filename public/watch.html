@@ -585,6 +585,7 @@
     function setPlaying(p){iPlay.style.display=p?'none':'block';iPause.style.display=p?'block':'none';showControls();scheduleHide();}
     function doToggle(){vid.paused?vid.play().catch(()=>{}):vid.pause();}
     playBtn.addEventListener('click',e=>{e.stopPropagation();doToggle();onInteraction();});
+    let stallTimer = null;
     vid.addEventListener('playing',()=>{
       playbackStarted = true;
       if (checkPlaybackTimer) {
@@ -597,13 +598,29 @@
         setTimeout(() => modal.remove(), 300);
       }
       if(playbackWatchdog){clearTimeout(playbackWatchdog);playbackWatchdog=null;}
+      if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
       bufSpin.classList.remove('on');
       setPlaying(true);
     });
-    vid.addEventListener('pause',()=>setPlaying(false));
-    vid.addEventListener('ended',()=>setPlaying(false));
-    vid.addEventListener('waiting',()=>bufSpin.classList.add('on'));
-    vid.addEventListener('canplay',()=>bufSpin.classList.remove('on'));
+    vid.addEventListener('pause',()=>{
+      setPlaying(false);
+      if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+    });
+    vid.addEventListener('ended',()=>{
+      setPlaying(false);
+      if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+    });
+    vid.addEventListener('waiting',()=>{
+      bufSpin.classList.add('on');
+      if (stallTimer) clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => {
+        showPlaybackFallbackModal();
+      }, 5000);
+    });
+    vid.addEventListener('canplay',()=>{
+      bufSpin.classList.remove('on');
+      if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+    });
 
     /* ── SKIP ±10s ─────────────────────────────── */
     function seekBy(s){vid.currentTime=Math.max(0,Math.min(vid.duration||0,vid.currentTime+s));onInteraction();}

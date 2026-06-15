@@ -461,6 +461,14 @@
     let PW_HEADERS = {};
     let SLIDES = [];
     
+    // Global Decrypted IDs for Fallback Redirects
+    let decryptedBatchId = "";
+    let decryptedSubjectId = "";
+    let decryptedScheduleId = "";
+    let decryptedRawBatchId = "";
+    let decryptedRawSubjectId = "";
+    let decryptedRawScheduleId = "";
+    
 /* ── UTILS ─────────────────────────────────────── */
     function fmt(s){s=Math.floor(s||0);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?`${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`:`${m}:${String(sc).padStart(2,'0')}`;}
 
@@ -1515,12 +1523,6 @@
 
     /* ── AMBIENT GLOW & RECONCILIATION ─────────── */
     let lastSaveTime = 0;
-    let decryptedBatchId = "";
-    let decryptedSubjectId = "";
-    let decryptedScheduleId = "";
-    let decryptedRawBatchId = "";
-    let decryptedRawSubjectId = "";
-    let decryptedRawScheduleId = "";
 
     // Ambilight Capture Loop
     (function() {

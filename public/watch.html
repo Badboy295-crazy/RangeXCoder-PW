@@ -260,7 +260,7 @@
     .ptab svg{width:14px;height:14px;flex-shrink:0}
     .ptab.active{color:var(--accent);border-bottom-color:var(--accent)}
     
-    .panel-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+    .panel-body{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
     .panel-body::-webkit-scrollbar{width:3px}
     .panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
     .ptab-panel{display:none;padding:12px}
@@ -1752,7 +1752,8 @@
         slidesHTML = '<div style="padding:20px; text-align:center; color:var(--muted); font-size:12px;">No timeline slides available for this video.</div>';
       } else {
         slidesArray.forEach((slide) => {
-          const secs = parseTimestampToSeconds(slide.timeStamp);
+          const rawTime = slide.timeStamp !== undefined ? slide.timeStamp : slide.timestamp;
+          const secs = parseTimestampToSeconds(rawTime);
           let imgUrl = "";
           if (slide.img && slide.img.baseUrl && slide.img.key) {
             imgUrl = slide.img.baseUrl + slide.img.key;
@@ -1856,7 +1857,9 @@
       const currentTime = vid.currentTime;
       let activeIndex = -1;
       for (let i = 0; i < slidesArray.length; i++) {
-        const slideSecs = parseTimestampToSeconds(slidesArray[i].timeStamp);
+        const slide = slidesArray[i];
+        const rawTime = slide.timeStamp !== undefined ? slide.timeStamp : slide.timestamp;
+        const slideSecs = parseTimestampToSeconds(rawTime);
         if (slideSecs <= currentTime) {
           activeIndex = i;
         }
@@ -1871,15 +1874,10 @@
             if (idx === activeIndex) {
               card.classList.add('cur');
               
-              // Calculate relative scroll inside .panel-body without page jumps
+              // Calculate relative scroll inside .panel-body using offsetTop (since panel-body is position relative)
               const panelBody = card.closest('.panel-body');
               if (panelBody) {
-                const cardRect = card.getBoundingClientRect();
-                const panelRect = panelBody.getBoundingClientRect();
-                const relativeTop = cardRect.top - panelRect.top + panelBody.scrollTop;
-                const cardHeight = cardRect.height;
-                const panelHeight = panelRect.height;
-                const targetScroll = relativeTop - (panelHeight / 2) + (cardHeight / 2);
+                const targetScroll = card.offsetTop - (panelBody.clientHeight / 2) + (card.clientHeight / 2);
                 panelBody.scrollTo({
                   top: targetScroll,
                   behavior: 'smooth'

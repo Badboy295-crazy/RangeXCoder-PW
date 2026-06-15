@@ -538,6 +538,10 @@ app.get('/api/play', async (req, res) => {
         return res.status(400).send("Invalid or expired access token.");
     }
 
+    if (decryptedUrl.startsWith("pwvideo://")) {
+        return res.redirect(`/watch?token=${encodeURIComponent(token)}`);
+    }
+
     let localPath = "/schedule-details";
     if (decryptedUrl.includes("get-dpp-quiz")) {
         localPath = "/get-dpp-quiz";
@@ -577,7 +581,7 @@ app.get('/api/play', async (req, res) => {
             }
             res.send(html);
         } else {
-            res.redirect(decryptedUrl);
+            res.redirect(finalUrl || decryptedUrl);
         }
     } catch (error) {
         console.error("Secure stream proxy failed, redirecting to local fallback URL:", error.message);
@@ -738,10 +742,10 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
             console.error('Worker datacontent (notes) failed:', err.message);
         }
         
-        // Fetch DPP PDFs via datacontent
+        // Fetch DPP PDFs via datacontent (worker expects 'dpp' instead of 'dpp-pdf')
         try {
             const dppRes = await axios.get(`${WORKER_BASE}/datacontent`, {
-                params: { batchId, subjectSlug, topicSlug: chapterSlug, contentType: 'dpp-pdf' },
+                params: { batchId, subjectSlug, topicSlug: chapterSlug, contentType: 'dpp' },
                 timeout: 10000
             });
             const dppData = dppRes.data;
@@ -749,7 +753,7 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
                 dppNotes = dppData.data;
             }
         } catch (err) {
-            console.error('Worker datacontent (dpp-pdf) failed:', err.message);
+            console.error('Worker datacontent (dpp) failed:', err.message);
         }
     } else {
         // Fallback: use original PW API if slugs are missing

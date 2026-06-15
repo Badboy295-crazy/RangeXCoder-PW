@@ -461,7 +461,7 @@ function encryptUrlsInHtml(html, hostUrl) {
 
 // Generate secure encrypted token for target URLs
 app.get('/api/get-token', (req, res) => {
-    const { type, batchId, subjectId, scheduleId, testId, tag } = req.query;
+    const { type, batchId, subjectId, scheduleId, testId, tag, subjectSlug, chapterSlug } = req.query;
     const decBatchId = safeDecrypt(batchId);
     const decSubjectId = safeDecrypt(subjectId);
     const decScheduleId = safeDecrypt(scheduleId);
@@ -470,7 +470,7 @@ app.get('/api/get-token', (req, res) => {
     
     let targetURL = "";
     if (type === 'video') {
-        targetURL = `https://stream.testuk.org/schedule-details?batchId=${decBatchId}&subjectId=${decSubjectId}&scheduleId=${decScheduleId}&tap=video&tag=${decTag || ''}`;
+        targetURL = `pwvideo://play?batchId=${decBatchId}&subjectId=${decSubjectId}&scheduleId=${decScheduleId}&tag=${decTag || ''}&subjectSlug=${encodeURIComponent(subjectSlug || '')}&chapterSlug=${encodeURIComponent(chapterSlug || '')}`;
     } else if (type === 'note') {
         targetURL = `https://stream.testuk.org/schedule-details?batchId=${decBatchId}&subjectId=${decSubjectId}&scheduleId=${decScheduleId}&tap=note&noteIndex=0&isDpp=false`;
     } else if (type === 'dpp-pdf') {
@@ -516,10 +516,12 @@ app.get('/api/go', (req, res) => {
         return res.status(400).send("Invalid or expired access token.");
     }
     
-    let localPath = "/schedule-details";
-    if (decryptedUrl.includes("get-dpp-quiz")) {
-        localPath = "/get-dpp-quiz";
-    } else if (decryptedUrl.includes("get-test-solution-video")) {
+    if (decryptedUrl.startsWith("pwvideo://")) {
+        return res.redirect(`/watch?token=${encodeURIComponent(token)}`);
+    }
+    
+    let localPath = "/get-dpp-quiz";
+    if (decryptedUrl.includes("get-test-solution-video")) {
         localPath = "/get-test-solution-video";
     }
     res.redirect(`${localPath}?token=${encodeURIComponent(token)}`);
@@ -630,72 +632,7 @@ app.get('/api/play', async (req, res) => {
     }
 });
 
-// Proxy route for schedule-details
-app.get('/schedule-details', async (req, res) => {
-    const { token } = req.query;
-    let targetUrl = "";
-    
-    if (token) {
-        targetUrl = decrypt(token);
-        if (!targetUrl) {
-            return res.status(400).send("Invalid or expired access token.");
-        }
-    } else {
-        if (Object.keys(req.query).length > 0) {
-            const queryParams = new URLSearchParams(req.query).toString();
-            const rawUrl = `https://stream.testuk.org/schedule-details?${queryParams}`;
-            const secureToken = encrypt(rawUrl);
-            return res.redirect(`/schedule-details?token=${encodeURIComponent(secureToken)}`);
-        } else {
-            return res.status(400).send("Missing query parameters or access token.");
-        }
-    }
-
-    try {
-        const response = await axios.get(targetUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-        });
-        
-        const contentType = response.headers['content-type'] || '';
-        const finalUrl = response.request.res.responseUrl;
-
-        if (finalUrl && finalUrl.includes('/media/')) {
-            const hostUrl = req.protocol + '://' + req.get('host');
-            const mediaPath = finalUrl.substring(finalUrl.indexOf('/media/'));
-            return res.redirect(`${hostUrl}${mediaPath}`);
-        }
-
-        if (contentType.includes('text/html')) {
-            let html = response.data;
-            const hostUrl = req.protocol + '://' + req.get('host');
-            if (typeof html === 'string') {
-                html = encryptUrlsInHtml(html, hostUrl);
-                html = html.replace(/https:\/\/stream\.testuk\.org/g, hostUrl);
-                html = html.replace(/https:\/\/stream\.pimaxer\.in\/([a-zA-Z0-9_-]+)\/master\.m3u8/g, (match, uuid) => {
-                    const expires = Date.now() + 6 * 3600 * 1000;
-                    const streamToken = encrypt(`${uuid}:${expires}`);
-                    return `${hostUrl}/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
-                });
-                html = html.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
-            }
-            res.send(html);
-        } else {
-            res.redirect(targetUrl);
-        }
-    } catch (error) {
-        console.error("schedule-details proxy failed, checking fallback:", error.message);
-        if (targetUrl && targetUrl.includes("tap=video")) {
-            console.log("Serving watch.html as local fallback for video request");
-            return res.sendFile(path.join(__dirname, 'public', 'watch.html'));
-        }
-        if (targetUrl) {
-            return res.redirect(targetUrl);
-        }
-        renderConnectionErrorPage(res);
-    }
-});
+// /schedule-details route REMOVED - now using direct worker APIs via /api/video-data
 
 // Proxy route for get-dpp-quiz
 app.get('/get-dpp-quiz', async (req, res) => {
@@ -741,92 +678,126 @@ app.get('/get-dpp-quiz', async (req, res) => {
     }
 });
 
-async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
-    let match = null;
-    let finalTag = tag;
-    if (finalTag) {
-        const contentsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${finalTag}`;
-        const res = await axios.get(contentsUrl, { headers: HEADERS, timeout: 5000 });
-        const items = res.data?.data || [];
-        match = items.find(item => item._id === scheduleId);
+async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, chapterSlug) {
+    const WORKER_BASE = 'https://pw.2snfjitu.workers.dev/api/pw';
+    
+    // 1. Fetch video URL details (MPD/stream URL)
+    let videoUrl = '';
+    try {
+        const videoUrlRes = await axios.get(`${WORKER_BASE}/video-url-details`, {
+            params: { batchId, childId: scheduleId, subjectId },
+            timeout: 10000
+        });
+        const videoData = videoUrlRes.data;
+        if (videoData?.success && videoData?.data?.length > 0) {
+            videoUrl = videoData.data[0].url;
+        }
+    } catch (err) {
+        console.error('Worker video-url-details failed:', err.message);
     }
     
-    if (!match) {
-        // Fallback search
-        const topicsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/topics?page=1`;
-        const topicsRes = await axios.get(topicsUrl, { headers: HEADERS, timeout: 5000 });
-        const topics = topicsRes.data?.data || [];
+    if (!videoUrl) {
+        throw new Error('Failed to get video URL from worker API.');
+    }
+    
+    // 2. Fetch datacontent (related videos, notes, etc.)
+    let contentData = [];
+    let topicName = 'Stream Player';
+    let notes = [];
+    let dppNotes = [];
+    if (subjectSlug && chapterSlug) {
+        try {
+            const dataContentRes = await axios.get(`${WORKER_BASE}/datacontent`, {
+                params: { batchId, subjectSlug, topicSlug: chapterSlug, contentType: 'videos' },
+                timeout: 10000
+            });
+            const dcData = dataContentRes.data;
+            if (dcData?.success && dcData?.data) {
+                contentData = dcData.data;
+                // Find the matching schedule to get the topic name
+                const matchItem = contentData.find(item => item._id === scheduleId);
+                if (matchItem) {
+                    topicName = matchItem.topic || matchItem.topicId?.name || 'Stream Player';
+                }
+            }
+        } catch (err) {
+            console.error('Worker datacontent (videos) failed:', err.message);
+        }
         
-        const reqs = topics.map(t => 
-            axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${t._id}`, { headers: HEADERS, timeout: 5000 })
-                .then(res => res.data?.data || [])
-                .catch(() => [])
-        );
-        const results = await Promise.all(reqs);
-        for (let i = 0; i < results.length; i++) {
-            const items = results[i];
-            const found = items.find(item => item._id === scheduleId);
-            if (found) {
-                match = found;
-                finalTag = topics[i]._id;
-                break;
+        // Also fetch notes via datacontent
+        try {
+            const notesRes = await axios.get(`${WORKER_BASE}/datacontent`, {
+                params: { batchId, subjectSlug, topicSlug: chapterSlug, contentType: 'notes' },
+                timeout: 10000
+            });
+            const notesData = notesRes.data;
+            if (notesData?.success && notesData?.data) {
+                notes = notesData.data;
+            }
+        } catch (err) {
+            console.error('Worker datacontent (notes) failed:', err.message);
+        }
+        
+        // Fetch DPP PDFs via datacontent
+        try {
+            const dppRes = await axios.get(`${WORKER_BASE}/datacontent`, {
+                params: { batchId, subjectSlug, topicSlug: chapterSlug, contentType: 'dpp-pdf' },
+                timeout: 10000
+            });
+            const dppData = dppRes.data;
+            if (dppData?.success && dppData?.data) {
+                dppNotes = dppData.data;
+            }
+        } catch (err) {
+            console.error('Worker datacontent (dpp-pdf) failed:', err.message);
+        }
+    } else {
+        // Fallback: use original PW API if slugs are missing
+        if (tag) {
+            try {
+                const contentsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${tag}`;
+                const res = await axios.get(contentsUrl, { headers: HEADERS, timeout: 5000 });
+                contentData = res.data?.data || [];
+                const matchItem = contentData.find(item => item._id === scheduleId);
+                if (matchItem) {
+                    topicName = matchItem.topic || 'Stream Player';
+                }
+            } catch (err) {
+                console.error('PW API contents fallback failed:', err.message);
+            }
+            try {
+                const notesUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=notes&tag=${tag}`;
+                const notesRes = await axios.get(notesUrl, { headers: HEADERS, timeout: 5000 });
+                notes = notesRes.data?.data || [];
+            } catch (err) {
+                console.error('PW API notes fallback failed:', err.message);
+            }
+            try {
+                const dppUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=dpp-pdf&tag=${tag}`;
+                const dppRes = await axios.get(dppUrl, { headers: HEADERS, timeout: 5000 });
+                dppNotes = dppRes.data?.data || [];
+            } catch (err) {
+                console.error('PW API dpp fallback failed:', err.message);
             }
         }
     }
     
-    if (!match) {
-        throw new Error("Lecture schedule ID not found in batch contents.");
-    }
-    
-    const videoId = match.videoDetails?._id || match.videoDetails?.id;
-    if (!videoId) {
-        throw new Error("No videoId found in lecture details.");
-    }
-    
-    let videoRes = null;
+    // 3. Fetch slides
+    let slides = [];
     try {
-        videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
-    } catch (e) {
-        console.error("Video details fetch error:", e.message);
-        throw e;
-    }
-
-    const videoUrl = videoRes?.data?.data?.videoUrl;
-    if (!videoUrl) {
-        throw new Error("No videoUrl returned from PW API.");
+        const slidesRes = await axios.get(`${WORKER_BASE}/slides`, {
+            params: { batchId, subjectId, scheduleId },
+            timeout: 10000
+        });
+        const slidesData = slidesRes.data;
+        if (slidesData?.success && slidesData?.data) {
+            slides = slidesData.data;
+        }
+    } catch (err) {
+        console.error('Worker slides failed:', err.message);
     }
     
-    const uuidMatch = videoUrl.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-    if (!uuidMatch) {
-        throw new Error("Failed to extract UUID from videoUrl.");
-    }
-    const uuid = uuidMatch[1];
-    
-    const expires = Date.now() + 6 * 3600 * 1000;
-    const streamToken = encrypt(`${uuid}:${expires}`);
-    const constructedHlsUrl = `/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
-
-    // Fetch notes and DPP files for the same tag/topic
-    let notes = [];
-    let dppNotes = [];
-    if (finalTag) {
-        try {
-            const notesUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=notes&tag=${finalTag}`;
-            const notesRes = await axios.get(notesUrl, { headers: HEADERS, timeout: 5000 });
-            notes = notesRes.data?.data || [];
-        } catch (err) {
-            console.error("Error fetching notes for player:", err.message);
-        }
-        
-        try {
-            const dppUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=dpp-pdf&tag=${finalTag}`;
-            const dppRes = await axios.get(dppUrl, { headers: HEADERS, timeout: 5000 });
-            dppNotes = dppRes.data?.data || [];
-        } catch (err) {
-            console.error("Error fetching dpp-pdf for player:", err.message);
-        }
-    }
-
+    // Build notes and DPP lists
     const notesList = notes.map(n => ({
         _id: safeEncrypt(n._id),
         topic: n.homeworkIds?.[0]?.topic || n.topic || "Class Note"
@@ -839,8 +810,8 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
     
     return {
         videoData: {
-            url: constructedHlsUrl,
-            drmType: "ClearKey",
+            url: videoUrl,
+            drmType: "none",
             keys: []
         },
         batchId: safeEncrypt(batchId),
@@ -848,8 +819,8 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag) {
         pwHeaders: {},
         notes: notesList,
         dppNotes: dppList,
-        topicName: match.topic || "Stream Player",
-        slides: []
+        topicName: topicName,
+        slides: slides
     };
 }
 
@@ -870,12 +841,14 @@ app.get('/api/video-data', async (req, res) => {
         const subjectId = parsedUrl.searchParams.get('subjectId');
         const scheduleId = parsedUrl.searchParams.get('scheduleId');
         const tag = parsedUrl.searchParams.get('tag');
+        const subjectSlug = decodeURIComponent(parsedUrl.searchParams.get('subjectSlug') || '');
+        const chapterSlug = decodeURIComponent(parsedUrl.searchParams.get('chapterSlug') || '');
 
         if (!batchId || !subjectId || !scheduleId) {
             throw new Error("Missing query parameters in decrypted token URL.");
         }
 
-        const data = await getPWVideoData(batchId, subjectId, scheduleId, tag);
+        const data = await getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, chapterSlug);
         const encrypted = encryptPayload(data);
         res.json({
             success: true,

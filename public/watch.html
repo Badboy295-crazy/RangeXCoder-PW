@@ -550,12 +550,8 @@
       document.getElementById('fallback-restart-btn').onclick = () => {
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        if (token) {
-          window.open('/schedule-details?token=' + encodeURIComponent(token), '_blank');
-          window.history.back();
-        }
+        // Reload the player page to retry
+        window.location.reload();
       };
     }
 
@@ -1356,8 +1352,8 @@
         }
 
         function triggerSilentFallback(tkn) {
-            window.open('/schedule-details?token=' + encodeURIComponent(tkn), '_blank');
-            window.history.back();
+            // Fallback: reload the player page to retry
+            window.location.reload();
         }
         
         // Animated loading stages so user feels progress

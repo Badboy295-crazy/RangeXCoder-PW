@@ -572,6 +572,7 @@
         const SUBJECT_ID = urlParams.get('subjectId');
         const SUBJECT_SLUG = urlParams.get('subjectSlug') || "";
         const CHAPTER_ID = urlParams.get('chapterId');
+        const CHAPTER_SLUG = urlParams.get('chapterSlug') || "";
         const BATCH_NAME = urlParams.get('batchName');
         const SUBJECT_NAME = urlParams.get('subjectName');
         const CHAPTER_NAME = urlParams.get('chapterName') || "Workspace Terminal";
@@ -733,7 +734,7 @@
                 
                 row.onclick = async () => {
                     try {
-                        const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&scheduleId=${item._id}&tag=${CHAPTER_ID}`);
+                        const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&scheduleId=${item._id}&tag=${CHAPTER_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterSlug=${encodeURIComponent(CHAPTER_SLUG)}`);
                         const resData = await response.json();
                         if (resData.success && resData.token) {
                             window.location.href = `/watch?token=${encodeURIComponent(resData.token)}`;

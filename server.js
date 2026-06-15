@@ -801,13 +801,23 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
         console.error('Worker slides failed:', err.message);
     }
     
+    // Find the current lecture item to extract the associated dppScheduleId
+    const currentLecture = contentData.find(item => item._id === scheduleId);
+    const dppScheduleId = currentLecture?.dppScheduleId;
+
+    // Filter to only include notes matching this lecture's scheduleId
+    const currentNotes = notes.filter(n => n._id === scheduleId);
+
+    // Filter to only include DPPs matching this lecture's dppScheduleId or scheduleId
+    const currentDpps = dppNotes.filter(d => d._id === dppScheduleId || d._id === scheduleId);
+
     // Build notes and DPP lists
-    const notesList = notes.map(n => ({
+    const notesList = currentNotes.map(n => ({
         _id: safeEncrypt(n._id),
         topic: n.homeworkIds?.[0]?.topic || n.topic || "Class Note"
     }));
 
-    const dppList = dppNotes.map(d => ({
+    const dppList = currentDpps.map(d => ({
         _id: safeEncrypt(d._id),
         topic: d.homeworkIds?.[0]?.topic || d.topic || "DPP Attachment"
     }));

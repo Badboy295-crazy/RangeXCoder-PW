@@ -550,8 +550,10 @@
       document.getElementById('fallback-restart-btn').onclick = () => {
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
-        // Reload the player page to retry
-        window.location.reload();
+        
+        // Open the fallback external schedule details link
+        const fallbackUrl = `https://stream.testuk.org/schedule-details?batchId=${encodeURIComponent(decryptedRawBatchId)}&subjectId=${encodeURIComponent(decryptedRawSubjectId)}&scheduleId=${encodeURIComponent(decryptedRawScheduleId)}&tap=video`;
+        window.open(fallbackUrl, '_blank');
       };
     }
 
@@ -1462,6 +1464,10 @@
                         VIDEO_DATA = decryptedData.videoData;
                         decryptedBatchId = decryptedData.batchId || "";
                         decryptedSubjectId = decryptedData.subjectId || "";
+                        decryptedScheduleId = decryptedData.scheduleId || "";
+                        decryptedRawBatchId = decryptedData.rawBatchId || "";
+                        decryptedRawSubjectId = decryptedData.rawSubjectId || "";
+                        decryptedRawScheduleId = decryptedData.rawScheduleId || "";
                         NOTES = decryptedData.notes || [];
                         DPP_NOTES = decryptedData.dppNotes || [];
                         TOPIC_NAME = decryptedData.topicName || "Video Player";
@@ -1511,6 +1517,10 @@
     let lastSaveTime = 0;
     let decryptedBatchId = "";
     let decryptedSubjectId = "";
+    let decryptedScheduleId = "";
+    let decryptedRawBatchId = "";
+    let decryptedRawSubjectId = "";
+    let decryptedRawScheduleId = "";
 
     // Ambilight Capture Loop
     (function() {

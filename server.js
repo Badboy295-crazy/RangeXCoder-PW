@@ -807,12 +807,70 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
         _id: safeEncrypt(d._id),
         topic: d.homeworkIds?.[0]?.topic || d.topic || "DPP Attachment"
     }));
+
+    // 4. Resolve Dynamic ClearKeys (KID and KEY) for Shaka Player DASH DRM decryption
+    let keys = [];
+    let drmType = "none";
+    try {
+        const matchItem = contentData.find(item => item._id === scheduleId);
+        let videoDetailsId = matchItem?.videoDetails?.id || matchItem?.videoDetails?._id;
+        if (!videoDetailsId && scheduleId) {
+            videoDetailsId = scheduleId;
+        }
+
+        if (videoDetailsId) {
+            let keyHex = '';
+            // Try HLS key API first
+            try {
+                const keyRes = await axios.get(`https://api.penpencil.co/v1/videos/get-hls-key?videoId=${videoDetailsId}`, {
+                    headers: HEADERS,
+                    responseType: 'arraybuffer',
+                    timeout: 5000
+                });
+                keyHex = Buffer.from(keyRes.data).toString('hex');
+            } catch (err) {
+                console.warn(`HLS key API failed for videoId ${videoDetailsId}:`, err.message);
+                // Fallback: Try get-drm-key API
+                try {
+                    const keyRes = await axios.get(`https://api.penpencil.co/v3/files/get-drm-key?videoId=${videoDetailsId}`, {
+                        headers: HEADERS,
+                        responseType: 'arraybuffer',
+                        timeout: 5000
+                    });
+                    keyHex = Buffer.from(keyRes.data).toString('hex');
+                } catch (drmErr) {
+                    console.error(`DRM key API also failed for videoId ${videoDetailsId}:`, drmErr.message);
+                }
+            }
+
+            // Extract KID from MPD XML
+            if (keyHex && videoUrl && videoUrl.toLowerCase().includes('.mpd')) {
+                try {
+                    const mpdRes = await axios.get(videoUrl, { timeout: 5000 });
+                    const mpdXml = mpdRes.data;
+                    const kidMatch = mpdXml.match(/cenc:default_KID="([^"]+)"/);
+                    if (kidMatch) {
+                        const kidHex = kidMatch[1].replace(/-/g, '').toLowerCase().trim();
+                        keys.push(`${kidHex}:${keyHex}`);
+                        drmType = "clearkey";
+                        console.log(`Successfully resolved dynamic clearKey DRM key for video ${videoDetailsId}: ${kidHex}:${keyHex}`);
+                    } else {
+                        console.warn("No cenc:default_KID found in MPD manifest file.");
+                    }
+                } catch (mpdErr) {
+                    console.error("Failed to fetch MPD manifest for KID extraction:", mpdErr.message);
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Dynamic DRM key resolution failed:", err.message);
+    }
     
     return {
         videoData: {
             url: videoUrl,
-            drmType: "none",
-            keys: []
+            drmType: drmType,
+            keys: keys
         },
         batchId: safeEncrypt(batchId),
         subjectId: safeEncrypt(subjectId),

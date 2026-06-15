@@ -553,7 +553,8 @@
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         if (token) {
-          triggerSilentFallback(token);
+          window.open('/schedule-details?token=' + encodeURIComponent(token), '_blank');
+          window.history.back();
         }
       };
     }
@@ -1114,6 +1115,7 @@
       console.error("Player error:", msg);
       errMsg.textContent = msg;
       ovErr.classList.add('on');
+      setTimeout(showPlaybackFallbackModal, 1000);
     }
 
     /* ── URL HELPERS ───────────────────────────── */
@@ -1337,7 +1339,8 @@
         }
 
         function triggerSilentFallback(tkn) {
-            window.location.href = '/schedule-details?token=' + encodeURIComponent(tkn);
+            window.open('/schedule-details?token=' + encodeURIComponent(tkn), '_blank');
+            window.history.back();
         }
         
         // Animated loading stages so user feels progress

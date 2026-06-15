@@ -462,12 +462,13 @@
     let SLIDES = [];
     
     // Global Decrypted IDs for Fallback Redirects
+    const urlParamsObj = new URLSearchParams(window.location.search);
     let decryptedBatchId = "";
     let decryptedSubjectId = "";
     let decryptedScheduleId = "";
-    let decryptedRawBatchId = "";
-    let decryptedRawSubjectId = "";
-    let decryptedRawScheduleId = "";
+    let decryptedRawBatchId = urlParamsObj.get('batchId') || "";
+    let decryptedRawSubjectId = urlParamsObj.get('subjectId') || "";
+    let decryptedRawScheduleId = urlParamsObj.get('scheduleId') || "";
     
 /* ── UTILS ─────────────────────────────────────── */
     function fmt(s){s=Math.floor(s||0);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?`${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`:`${m}:${String(sc).padStart(2,'0')}`;}
@@ -1473,9 +1474,9 @@
                         decryptedBatchId = decryptedData.batchId || "";
                         decryptedSubjectId = decryptedData.subjectId || "";
                         decryptedScheduleId = decryptedData.scheduleId || "";
-                        decryptedRawBatchId = decryptedData.rawBatchId || "";
-                        decryptedRawSubjectId = decryptedData.rawSubjectId || "";
-                        decryptedRawScheduleId = decryptedData.rawScheduleId || "";
+                        decryptedRawBatchId = decryptedData.rawBatchId || decryptedRawBatchId;
+                        decryptedRawSubjectId = decryptedData.rawSubjectId || decryptedRawSubjectId;
+                        decryptedRawScheduleId = decryptedData.rawScheduleId || decryptedRawScheduleId;
                         NOTES = decryptedData.notes || [];
                         DPP_NOTES = decryptedData.dppNotes || [];
                         TOPIC_NAME = decryptedData.topicName || "Video Player";

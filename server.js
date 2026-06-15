@@ -517,6 +517,15 @@ app.get('/api/go', (req, res) => {
     }
     
     if (decryptedUrl.startsWith("pwvideo://")) {
+        try {
+            const parsedUrl = new URL(decryptedUrl);
+            const rawBatchId = parsedUrl.searchParams.get('batchId') || "";
+            const rawSubjectId = parsedUrl.searchParams.get('subjectId') || "";
+            const rawScheduleId = parsedUrl.searchParams.get('scheduleId') || "";
+            return res.redirect(`/watch?token=${encodeURIComponent(token)}&batchId=${encodeURIComponent(rawBatchId)}&subjectId=${encodeURIComponent(rawSubjectId)}&scheduleId=${encodeURIComponent(rawScheduleId)}`);
+        } catch (e) {
+            console.error("Failed to parse pwvideo URL in api/go:", e.message);
+        }
         return res.redirect(`/watch?token=${encodeURIComponent(token)}`);
     }
     
@@ -539,6 +548,15 @@ app.get('/api/play', async (req, res) => {
     }
 
     if (decryptedUrl.startsWith("pwvideo://")) {
+        try {
+            const parsedUrl = new URL(decryptedUrl);
+            const rawBatchId = parsedUrl.searchParams.get('batchId') || "";
+            const rawSubjectId = parsedUrl.searchParams.get('subjectId') || "";
+            const rawScheduleId = parsedUrl.searchParams.get('scheduleId') || "";
+            return res.redirect(`/watch?token=${encodeURIComponent(token)}&batchId=${encodeURIComponent(rawBatchId)}&subjectId=${encodeURIComponent(rawSubjectId)}&scheduleId=${encodeURIComponent(rawScheduleId)}`);
+        } catch (e) {
+            console.error("Failed to parse pwvideo URL in api/play:", e.message);
+        }
         return res.redirect(`/watch?token=${encodeURIComponent(token)}`);
     }
 

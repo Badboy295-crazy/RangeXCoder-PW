@@ -883,7 +883,7 @@
                 const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${subjectId}&scheduleId=${scheduleId}&tag=${chapterId}`);
                 const resData = await response.json();
                 if (resData.success && resData.token) {
-                    window.location.href = `/watch?token=${encodeURIComponent(resData.token)}`;
+                    window.location.href = `/watch?token=${encodeURIComponent(resData.token)}&batchId=${encodeURIComponent(BATCH_ID)}&subjectId=${encodeURIComponent(subjectId)}&scheduleId=${encodeURIComponent(scheduleId)}`;
                 } else {
                     alert("Unable to fetch live video stream token.");
                 }

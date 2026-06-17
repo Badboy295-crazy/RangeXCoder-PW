@@ -22,7 +22,7 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // New auth token provided by user
-const AUTH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3ODE2ODM4MjQuNzk4LCJkYXRhIjp7Il9pZCI6IjY4MzEyNTQ1MDNkMzc1MmFhMzkzZWUzNyIsInVzZXJuYW1lIjoiNzM0MDMyMzM1MSIsImZpcnN0TmFtZSI6IlNhbmRlZXAiLCJsYXN0TmFtZSI6Ikt1bWFyIiwib3JnYW5pemF0aW9uIjp7Il9pZCI6IjVlYjM5M2VlOTVmYWI3NDY4YTc5ZDE4OSIsIndlYnNpdGUiOiJwaHlzaWNzd2FsbGFoLmNvbSIsIm5hbWUiOiJQaHlzaWNzd2FsbGFoIn0sInJvbGVzIjpbIjViMjdiZDk2NTg0MmY5NTBhNzc4YzZlZiJdLCJjb3VudHJ5R3JvdXAiOiJJTiIsInR5cGUiOiJVU0VSIn0sImp0aSI6Im9JVHdWeWpUUTFHbGpBRXFJcWp1TVFfNjgzMTI1NDUwM2QzNzUyYWEzOTNlZTM3IiwiaWF0IjoxNzgxMDc5MDI0fQ.6QHXJ6EyW5Mnb6R2YrekqcuTcflTfpzhYOfyzgbUsxc"; 
+const AUTH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3ODIzMDI0NDkuODUxLCJkYXRhIjp7Il9pZCI6IjY3ZTkxM2YwMzNjNmFiM2I4YTliMjQ5OCIsInVzZXJuYW1lIjoiOTY0NzkwNjc0OSIsImZpcnN0TmFtZSI6IkphbWlyIiwibGFzdE5hbWUiOiJLbyBLYmhpIFZpZGVvIENhbGwgTmhpYXlhIiwib3JnYW5pemF0aW9uIjp7Il9pZCI6IjVlYjM5M2VlOTVmYWI3NDY4YTc5ZDE4OSIsIndlYnNpdGUiOiJwaHlzaWNzd2FsbGFoLmNvbSIsIm5hbWUiOiJQaHlzaWNzd2FsbGFoIn0sImVtYWlsIjoiamFtaXJhbGk5OTMyQGdtYWlsLmNvbSIsInJvbGVzIjpbIjViMjdiZDk2NTg0MmY5NTBhNzc4YzZlZiIsIjViMjdiZDk2NTg0MmY5NTBhNzc4YzZlZiJdLCJjb3VudHJ5R3JvdXAiOiJJTiIsInR5cGUiOiJVU0VSIn0sImp0aSI6ImlYYndkbG51UkpTVkd3QnQ3a3doLVFfNjdlOTEzZjAzM2M2YWIzYjhhOWIyNDk4IiwiaWF0IjoxNzgxNjk3NjQ5fQ.Bq2sRmvJTTvz27dLB5GQjFOFzPmUix2n4lZ2npjyzHA"; 
 
 const COOKIE_TOKEN = "accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWZjNDk3OGE4YTZhNzg1NjYxNjNmNmYiLCJuYW1lIjoiQW1iZXIgS2FzYXVkaGFuIiwidGVsZWdyYW1JZCI6bnVsbCwiUGhvdG9VcmwiOiJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8zNjA3LzM2MDc0NDQucG5nIiwiaWF0IjoxNzc5NDYwMDk1LCJleHAiOjE3ODA3NTYwOTV9.IzAq6lmdjTUnSDh9zhyDiTr5jKRvLnp9_VC5T_XKBOI; refreshToken=97607eddff31612a163962e6d3dd4a8705ca4bd417def1177e4ca4b15f2f4dd56887d2f9069cca8260e540fc2aa4f9522a12ced0fe132c2fe4687b374038da9a";
 
@@ -110,7 +110,7 @@ wss.on('connection', (ws) => {
 // Fetch all batches
 app.get(['/api/batches', '/api/batche'], async (req, res) => {
     try {
-        const response = await axios.get("https://rarestudy.github.io/rarestudy/batches.json?v=1781369266137", { timeout: 5000 });
+        const response = await axios.get("https://rarestudy.github.io/rarestudy/batches.json?v=1781706792628", { timeout: 5000 });
         const data = response.data;
         if (data && data.batches) {
             data.batches = data.batches.map(b => {

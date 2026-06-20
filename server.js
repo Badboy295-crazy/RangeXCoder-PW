@@ -1520,6 +1520,17 @@ app.get('/content', (req, res) => { res.sendFile(path.join(__dirname, 'public', 
 app.get('/stream', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'stream.html')); });
 app.get('/watch', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'watch.html')); });
 
+// Self-ping interval to keep the Render free tier awake by calling its own endpoint externally
+const selfPingUrl = process.env.RENDER_EXTERNAL_URL || 'https://rangexcoder-pw-aqaw.onrender.com';
+setInterval(() => {
+    const https = require('https');
+    https.get(`${selfPingUrl}/api/ping`, (res) => {
+        console.log(`[Self-Ping] Sent keep-awake request. Status: ${res.statusCode}`);
+    }).on('error', (err) => {
+        console.error('[Self-Ping] Request failed:', err.message);
+    });
+}, 10 * 60 * 1000); // 10 minutes
+
 server.listen(PORT, () => {
     console.log(`===================================================`);
     console.log(`   PW Zone Engine Active with Real-Time Community!`);

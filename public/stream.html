@@ -578,6 +578,9 @@
         const SUBJECT_NAME = urlParams.get('subjectName');
         const CHAPTER_NAME = urlParams.get('chapterName') || "Workspace Terminal";
         let activeSection = urlParams.get('section') || "videos";
+        let currentStreamPage = 1;
+        let hasMoreStreamData = true;
+        let isFetchingStreamLock = false;
 
         document.getElementById('chapterNavbarTitle').innerText = CHAPTER_NAME;
         document.title = CHAPTER_NAME + " | PW Zone";
@@ -596,36 +599,42 @@
                     activeSection = this.getAttribute('data-section');
                     tabs.forEach(item => item.classList.remove('active-node'));
                     this.classList.add('active-node');
+                    
+                    // Reset pagination state
+                    currentStreamPage = 1;
+                    hasMoreStreamData = true;
+                    isFetchingStreamLock = false;
+                    
                     loadActiveSectionStream();
                 };
             });
         }
 
         async function loadActiveSectionStream() {
-            const container = document.getElementById('streamContentDeck');
-            if (activeSection === 'videos') {
-                container.innerHTML = Array(4).fill(0).map(() => `
-                    <div class="skeleton-card" style="display: flex; flex-direction: column; gap: 15px; border-radius: 20px;">
-                        <div class="skeleton-img"></div>
-                        <div class="skeleton-title" style="width: 70%;"></div>
-                        <div class="skeleton-text" style="width: 40%;"></div>
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = Array(4).fill(0).map(() => `
-                    <div class="skeleton-card" style="padding: 15px 24px; flex-direction: row; align-items: center; gap: 18px; border-radius: 16px; margin-bottom: 12px;">
-                        <div class="skeleton-img" style="width: 44px; height: 44px; border-radius: 12px; aspect-ratio: 1/1; flex-shrink: 0;"></div>
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                            <div class="skeleton-title" style="width: 50%; height: 16px;"></div>
-                            <div class="skeleton-text" style="width: 20%; height: 10px;"></div>
+            if (CHAPTER_ID === 'ALL_CONTENT') {
+                const container = document.getElementById('streamContentDeck');
+                if (activeSection === 'videos') {
+                    container.innerHTML = Array(4).fill(0).map(() => `
+                        <div class="skeleton-card" style="display: flex; flex-direction: column; gap: 15px; border-radius: 20px;">
+                            <div class="skeleton-img"></div>
+                            <div class="skeleton-title" style="width: 70%;"></div>
+                            <div class="skeleton-text" style="width: 40%;"></div>
                         </div>
-                    </div>
-                `).join('');
-            }
-            if (_firstStreamLoad) updLoader('Loading content...', 70);
+                    `).join('');
+                } else {
+                    container.innerHTML = Array(4).fill(0).map(() => `
+                        <div class="skeleton-card" style="padding: 15px 24px; flex-direction: row; align-items: center; gap: 18px; border-radius: 16px; margin-bottom: 12px;">
+                            <div class="skeleton-img" style="width: 44px; height: 44px; border-radius: 12px; aspect-ratio: 1/1; flex-shrink: 0;"></div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                <div class="skeleton-title" style="width: 50%; height: 16px;"></div>
+                                <div class="skeleton-text" style="width: 20%; height: 10px;"></div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                if (_firstStreamLoad) updLoader('Loading content...', 70);
 
-            try {
-                if (CHAPTER_ID === 'ALL_CONTENT') {
+                try {
                     // Fetch topics to identify chapters with BOTH videos and notes
                     const pages = [1, 2, 3];
                     const topicsPromises = pages.map(p => 
@@ -696,38 +705,103 @@
                         else if (activeSection === 'notes' || activeSection === 'dpp-pdf') renderSheetsLayout(mergedItems, activeSection === 'dpp-pdf');
                         else renderEmptyRocketState();
                     }
-                } else {
-                    if (activeSection === 'dpp') {
-                        const response = await fetch(BACKEND_URL + `/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${CHAPTER_ID}`);
-                        const rawData = await response.json();
-                        const resData = decryptPayload(rawData.payload);
-                        renderQuizLayout(resData.data || []);
-                    } else {
-                        let mappedType = 'videos';
-                        if (activeSection === 'notes') mappedType = 'notes';
-                        if (activeSection === 'dpp-pdf') mappedType = 'DppNotes';
-                        if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
-
-                        const response = await fetch(BACKEND_URL + `/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${CHAPTER_ID}`);
-                        const rawData = await response.json();
-                        const resData = decryptPayload(rawData.payload);
-                        
-                        if (activeSection === 'videos') renderLecturesLayout(resData.data || []);
-                        else if (activeSection === 'notes' || activeSection === 'dpp-pdf') renderSheetsLayout(resData.data || [], activeSection === 'dpp-pdf');
-                        else renderEmptyRocketState();
-                    }
+                } catch (error) {
+                    renderEmptyRocketState();
+                } finally {
+                    if (_firstStreamLoad) { _firstStreamLoad = false; hideLoader(); }
                 }
-            } catch (error) {
-                renderEmptyRocketState();
-            } finally {
-                if (_firstStreamLoad) { _firstStreamLoad = false; hideLoader(); }
+            } else {
+                await fetchNextStreamChunk(true);
             }
         }
 
-        function renderLecturesLayout(items) {
+        async function fetchNextStreamChunk(isFirstLoad = false) {
+            if (isFetchingStreamLock || !hasMoreStreamData) return;
+            isFetchingStreamLock = true;
+
             const container = document.getElementById('streamContentDeck');
-            if (items.length === 0) { return renderEmptyRocketState(); }
-            container.innerHTML = '';
+            if (isFirstLoad) {
+                if (_firstStreamLoad) updLoader('Loading content...', 70);
+                container.innerHTML = '';
+                // Render skeletons
+                if (activeSection === 'videos') {
+                    container.innerHTML = Array(4).fill(0).map(() => `
+                        <div class="skeleton-card" style="display: flex; flex-direction: column; gap: 15px; border-radius: 20px;">
+                            <div class="skeleton-img"></div>
+                            <div class="skeleton-title" style="width: 70%;"></div>
+                            <div class="skeleton-text" style="width: 40%;"></div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = Array(4).fill(0).map(() => `
+                        <div class="skeleton-card" style="padding: 15px 24px; flex-direction: row; align-items: center; gap: 18px; border-radius: 16px; margin-bottom: 12px;">
+                            <div class="skeleton-img" style="width: 44px; height: 44px; border-radius: 12px; aspect-ratio: 1/1; flex-shrink: 0;"></div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                <div class="skeleton-title" style="width: 50%; height: 16px;"></div>
+                                <div class="skeleton-text" style="width: 20%; height: 10px;"></div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            try {
+                let items = [];
+                if (activeSection === 'dpp') {
+                    const response = await fetch(BACKEND_URL + `/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${CHAPTER_ID}&page=${currentStreamPage}`);
+                    const rawData = await response.json();
+                    const resData = decryptPayload(rawData.payload);
+                    items = resData.data || [];
+                } else {
+                    let mappedType = 'videos';
+                    if (activeSection === 'notes') mappedType = 'notes';
+                    if (activeSection === 'dpp-pdf') mappedType = 'DppNotes';
+                    if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
+
+                    const response = await fetch(BACKEND_URL + `/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${CHAPTER_ID}&page=${currentStreamPage}`);
+                    const rawData = await response.json();
+                    const resData = decryptPayload(rawData.payload);
+                    items = resData.data || [];
+                }
+
+                if (isFirstLoad) {
+                    container.innerHTML = '';
+                }
+
+                if (!Array.isArray(items) || items.length === 0) {
+                    hasMoreStreamData = false;
+                    if (isFirstLoad) {
+                        renderEmptyRocketState();
+                    }
+                    isFetchingStreamLock = false;
+                    return;
+                }
+
+                if (activeSection === 'videos') {
+                    renderLecturesLayout(items, isFirstLoad ? false : true);
+                } else if (activeSection === 'notes' || activeSection === 'dpp-pdf') {
+                    renderSheetsLayout(items, activeSection === 'dpp-pdf', isFirstLoad ? false : true);
+                } else if (activeSection === 'dpp') {
+                    renderQuizLayout(items, isFirstLoad ? false : true);
+                }
+
+                currentStreamPage++;
+            } catch (error) {
+                console.error(error);
+                if (isFirstLoad) renderEmptyRocketState();
+            } finally {
+                isFetchingStreamLock = false;
+                if (isFirstLoad && _firstStreamLoad) {
+                    _firstStreamLoad = false;
+                    hideLoader();
+                }
+            }
+        }
+
+        function renderLecturesLayout(items, append = false) {
+            const container = document.getElementById('streamContentDeck');
+            if (items.length === 0 && !append) { return renderEmptyRocketState(); }
+            if (!append) container.innerHTML = '';
 
             items.forEach(item => {
                 const row = document.createElement('div');
@@ -767,10 +841,10 @@
             });
         }
 
-        function renderSheetsLayout(items, isDpp = false) {
+        function renderSheetsLayout(items, isDpp = false, append = false) {
             const container = document.getElementById('streamContentDeck');
-            if (items.length === 0) { return renderEmptyRocketState(); }
-            container.innerHTML = '';
+            if (items.length === 0 && !append) { return renderEmptyRocketState(); }
+            if (!append) container.innerHTML = '';
 
             items.forEach(item => {
                 const hw = item.homeworkIds?.[0];
@@ -803,10 +877,10 @@
             });
         }
 
-        function renderQuizLayout(items) {
+        function renderQuizLayout(items, append = false) {
             const container = document.getElementById('streamContentDeck');
-            if (items.length === 0) { return renderEmptyRocketState(); }
-            container.innerHTML = '';
+            if (items.length === 0 && !append) { return renderEmptyRocketState(); }
+            if (!append) container.innerHTML = '';
 
             items.forEach(item => {
                 const test = item.test;
@@ -856,6 +930,14 @@
                 </div>
             `;
         }
+
+        window.addEventListener('scroll', () => {
+            if (CHAPTER_ID !== 'ALL_CONTENT') {
+                if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 300) {
+                    fetchNextStreamChunk(false);
+                }
+            }
+        });
 
         // Navigation Actions
         const mainContentView = document.getElementById('mainContentView');

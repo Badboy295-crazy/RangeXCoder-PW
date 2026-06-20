@@ -1305,7 +1305,7 @@
         if (!playbackStarted && (vid.paused || vid.currentTime === 0)) {
           showPlaybackFallbackModal();
         }
-      }, 15000);
+      }, 20000);
       try{
         if(isNativeOnly){
           if(isYT(data.url)){initYT(data.url);return;}
@@ -1435,7 +1435,7 @@
             }
             
             showPlaybackFallbackModal();
-        }, 15000);
+        }, 20000);
         
         try {
             const response = await fetch(BACKEND_URL + '/api/video-data?token=' + encodeURIComponent(token));

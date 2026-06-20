@@ -825,27 +825,32 @@
                     if (hasRealThumbnail) {
                         thumbnailHtml = `
                             <img src="${previewUrl}" alt="${titleHeading}" class="teacher-avatar-img" style="width: 100%; height: 100%; object-fit: cover; z-index: 2;" onerror="showThumbnailFallback(this, '${escapeJSString(titleHeading)}', '${escapeJSString(teacher.name)}')">
-                            <div class="teacher-name-tag">${teacher.name}</div>
                         `;
                     } else {
-                        const gradients = [
-                            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            'linear-gradient(135deg, #f6d365 0%, #fda085 100%)',
-                            'linear-gradient(135deg, #13547a 0%, #80d0c7 100%)',
-                            'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)',
-                            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                            'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
-                        ];
-                        const idx = Math.abs(titleHeading.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % gradients.length;
-                        const gradient = gradients[idx];
-                        thumbnailHtml = `
-                            <div class="lecture-thumbnail-fallback" style="background: ${gradient}; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px; box-sizing: border-box; text-align: center; color: #ffffff; gap: 6px;">
-                                <img src="${avatarUrl}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.6); margin-bottom: 2px;" onerror="this.style.display='none';">
-                                <div class="fallback-title" style="font-size: 12px; font-weight: 700; line-height: 1.2; color: #ffffff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${titleHeading}</div>
-                                <div class="fallback-teacher" style="font-size: 10px; font-weight: 500; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 20px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">${teacher.name}</div>
-                            </div>
-                        `;
+                        if (teacher.avatarUrl) {
+                            thumbnailHtml = `
+                                <img src="${teacher.avatarUrl}" alt="${teacher.name}" class="teacher-avatar-img" style="width: 100%; height: 100%; object-fit: cover; z-index: 2;" onerror="showThumbnailFallback(this, '${escapeJSString(titleHeading)}', '${escapeJSString(teacher.name)}')">
+                            `;
+                        } else {
+                            const gradients = [
+                                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                'linear-gradient(135deg, #f6d365 0%, #fda085 100%)',
+                                'linear-gradient(135deg, #13547a 0%, #80d0c7 100%)',
+                                'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)',
+                                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                            ];
+                            const idx = Math.abs(titleHeading.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % gradients.length;
+                            const gradient = gradients[idx];
+                            thumbnailHtml = `
+                                <div class="lecture-thumbnail-fallback" style="background: ${gradient}; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px; box-sizing: border-box; text-align: center; color: #ffffff; gap: 6px;">
+                                    <img src="${avatarUrl}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.6); margin-bottom: 2px;" onerror="this.style.display='none';">
+                                    <div class="fallback-title" style="font-size: 12px; font-weight: 700; line-height: 1.2; color: #ffffff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${titleHeading}</div>
+                                    <div class="fallback-teacher" style="font-size: 10px; font-weight: 500; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 20px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">${teacher.name}</div>
+                                </div>
+                            `;
+                        }
                     }
 
                     card.innerHTML = `

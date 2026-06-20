@@ -713,23 +713,88 @@ app.get('/get-dpp-quiz', async (req, res) => {
 async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, chapterSlug) {
     const WORKER_BASE = 'https://pw.2snfjitu.workers.dev/api/pw';
     
-    // 1. Fetch video URL details (MPD/stream URL)
     let videoUrl = '';
     let keys = [];
     let drmType = "none";
     let extractedFromTestuk = false;
     let slides = [];
+
+    // Stage 0: Direct official PW HLS UUID & stream-proxy flow
     try {
-        const videoUrlRes = await axios.get(`${WORKER_BASE}/video-url-details`, {
-            params: { batchId, childId: scheduleId, subjectId },
-            timeout: 10000
-        });
-        const videoData = videoUrlRes.data;
-        if (videoData?.success && videoData?.data?.length > 0) {
-            videoUrl = videoData.data[0].url;
+        console.log(`[Stage 0] Resolving videoId from Penpencil for scheduleId: ${scheduleId}`);
+        let videoDetailsId = null;
+
+        // Try to find in contentData first (if slugs were passed)
+        if (subjectSlug && chapterSlug) {
+            try {
+                const dataContentRes = await axios.get(`${WORKER_BASE}/datacontent`, {
+                    params: { batchId, subjectSlug, topicSlug: chapterSlug, contentType: 'videos' },
+                    timeout: 5000
+                });
+                const dcData = dataContentRes.data;
+                if (dcData?.success && dcData?.data) {
+                    const matchItem = dcData.data.find(item => item._id === scheduleId);
+                    if (matchItem?.videoDetails) {
+                        videoDetailsId = matchItem.videoDetails.id || matchItem.videoDetails._id;
+                    }
+                }
+            } catch (err) {
+                console.log("[Stage 0] contentData lookup failed:", err.message);
+            }
         }
-    } catch (err) {
-        console.error('Worker video-url-details failed:', err.message);
+
+        // If not found in contentData, try to lookup from todays-schedule API
+        if (!videoDetailsId) {
+            try {
+                const schedRes = await axios.get(`https://api.penpencil.co/v2/batches/${batchId}/todays-schedule`, { headers: HEADERS, timeout: 5000 });
+                const schedList = schedRes.data?.data || [];
+                const schedMatch = schedList.find(s => s._id === scheduleId);
+                if (schedMatch && schedMatch.videoDetails) {
+                    videoDetailsId = schedMatch.videoDetails.id || schedMatch.videoDetails._id;
+                }
+            } catch (schedErr) {
+                console.log("[Stage 0] todays-schedule lookup failed:", schedErr.message);
+            }
+        }
+
+        // If we still don't have it, assume scheduleId itself might be the videoId or lookup in Penpencil subjects
+        if (!videoDetailsId) {
+            videoDetailsId = scheduleId;
+        }
+
+        if (videoDetailsId) {
+            console.log(`[Stage 0] Fetching video details from Penpencil for videoId: ${videoDetailsId}`);
+            const videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoDetailsId}`, { headers: HEADERS, timeout: 5000 });
+            const rawVideoUrl = videoRes.data?.data?.videoUrl;
+            if (rawVideoUrl) {
+                const uuidMatch = rawVideoUrl.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+                if (uuidMatch) {
+                    const uuid = uuidMatch[1];
+                    const expires = Date.now() + 6 * 3600 * 1000;
+                    const streamToken = encrypt(`${uuid}:${expires}`);
+                    videoUrl = `https://rangexcoder-pw-aqaw.onrender.com/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+                    console.log("[Stage 0] Successfully fetched and signed HLS stream via proxy:", videoUrl);
+                }
+            }
+        }
+    } catch (stage0Err) {
+        console.error("[Stage 0] Direct Penpencil HLS lookup failed:", stage0Err.message);
+    }
+    
+    // 1. Fetch video URL details (MPD/stream URL)
+    if (!videoUrl) {
+        try {
+            const videoUrlRes = await axios.get(`${WORKER_BASE}/video-url-details`, {
+                params: { batchId, childId: scheduleId, subjectId },
+                timeout: 10000
+            });
+            const videoData = videoUrlRes.data;
+            if (videoData?.success && videoData?.data?.length > 0) {
+                videoUrl = videoData.data[0].url;
+            }
+        } catch (err) {
+            console.error('Worker video-url-details failed:', err.message);
+        }
     }
     
     // Fallback if worker fails: Fetch directly from Penpencil API and use local stream proxy

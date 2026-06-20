@@ -316,7 +316,7 @@
       <div class="load-title">PW<span style="color: var(--accent); margin-left: 4px;">Zone</span></div>
       <div id="loadMsg">Securing Connection...</div>
       <div id="loadStage">Initializing DRM Stream Node</div>
-      <div style="font-size: 11px; color: var(--accent); margin-top: -6px; font-weight: 600; text-align: center; max-width: 90%; line-height: 1.4;">If video not started playing so wait for 18 sec to play on fallback player</div>
+      <div style="font-size: 11px; color: var(--accent); margin-top: -6px; font-weight: 600; text-align: center; max-width: 90%; line-height: 1.4;">If video not started playing so wait for 15 sec to play on fallback player</div>
       <div class="progress-container">
         <div class="progress-bar-fill" id="ovLoadBarFill"></div>
       </div>
@@ -1435,7 +1435,7 @@
             }
             
             showPlaybackFallbackModal();
-        }, 18000);
+        }, 15000);
         
         try {
             const response = await fetch(BACKEND_URL + '/api/video-data?token=' + encodeURIComponent(token));

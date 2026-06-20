@@ -586,10 +586,15 @@
         document.getElementById('batchNavbarTitle').innerText = BATCH_NAME;
         document.title = BATCH_NAME + " | PW Zone";
 
+        // Map: encrypted subjectId → { name, avatarUrl } built from batch-details teacherIds
+        let teacherPhotoMap = {};
+
         async function initBatchWorkspace() {
             updLoader('Opening batch workspace...', 50);
             try {
-                await Promise.all([ loadSubjectsData(), loadTodaysSchedule() ]);
+                // Load subjects first to build teacher map, then load schedule
+                await loadSubjectsData();
+                await loadTodaysSchedule();
             } finally {
                 hideLoader();
             }
@@ -615,6 +620,20 @@
                     container.innerHTML = `<div class="status-msg"><i class="fas fa-exclamation-triangle" style="font-size:32px; display:block; margin-bottom:12px;"></i> No active subjects tracked inside this batch.</div>`;
                     return;
                 }
+
+                // Build teacher photo map: encrypted subjectId → { name, avatarUrl }
+                teacherPhotoMap = {};
+                resData.data.subjects.forEach(sub => {
+                    if (sub._id && sub.teacherIds && sub.teacherIds.length > 0) {
+                        const t = sub.teacherIds[0];
+                        const tName = [t.firstName, t.lastName].filter(Boolean).join(' ') || sub.description || sub.subject;
+                        let tAvatar = '';
+                        if (t.imageId && t.imageId.baseUrl && t.imageId.key) {
+                            tAvatar = `${t.imageId.baseUrl}${t.imageId.key}`;
+                        }
+                        teacherPhotoMap[sub._id] = { name: tName, avatarUrl: tAvatar };
+                    }
+                });
 
                 container.innerHTML = '';
                 resData.data.subjects.forEach(sub => {
@@ -685,18 +704,16 @@
                     if (item.type !== 'LECTURE') return;
                     
                     const sched = item.data || item;
-                    const teacher = (sched.teachers && sched.teachers[0]) ? { name: "Batch Faculty", imageId: null } : { name: "Batch Faculty", imageId: null };
-                    
-                    let avatarUrl = "https://static.pw.live/5eb393ee95fab7468a79d189/ADMIN/a8a8837e-fa4d-4355-bbd5-214512154c23.png"; 
 
-                    // Support teacher profile images if fetched in sched
-                    if (sched.teacherProfiles && sched.teacherProfiles[0]) {
-                        const prof = sched.teacherProfiles[0];
-                        if (prof.imageId && prof.imageId.baseUrl && prof.imageId.key) {
-                            avatarUrl = `${prof.imageId.baseUrl}${prof.imageId.key}`;
-                        }
-                        teacher.name = prof.name || teacher.name;
-                    }
+                    // Resolve teacher info from teacherPhotoMap using encrypted subjectId
+                    const schedSubjectId = (sched.subjectId && typeof sched.subjectId === 'object') ? sched.subjectId._id : sched.subjectId;
+                    const mappedTeacher = schedSubjectId ? teacherPhotoMap[schedSubjectId] : null;
+
+                    const teacher = {
+                        name: mappedTeacher ? mappedTeacher.name : 'Batch Faculty',
+                        avatarUrl: mappedTeacher && mappedTeacher.avatarUrl ? mappedTeacher.avatarUrl : ''
+                    };
+                    let avatarUrl = teacher.avatarUrl || "https://static.pw.live/5eb393ee95fab7468a79d189/ADMIN/a8a8837e-fa4d-4355-bbd5-214512154c23.png";
 
                     let timeDisplay = "04:00 PM";
                     if (sched.startTime) {

@@ -1295,7 +1295,7 @@
       initialized=true;lastData=data;
       showLoading('Initializing…','Detecting stream type');
       
-      // Start 12-second playback popup check
+      // Start 15-second playback popup check
       playbackStarted = false;
       if (checkPlaybackTimer) {
         clearTimeout(checkPlaybackTimer);
@@ -1305,7 +1305,7 @@
         if (!playbackStarted && (vid.paused || vid.currentTime === 0)) {
           showPlaybackFallbackModal();
         }
-      }, 18000);
+      }, 15000);
       try{
         if(isNativeOnly){
           if(isYT(data.url)){initYT(data.url);return;}

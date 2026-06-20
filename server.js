@@ -1277,18 +1277,20 @@ app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
             let playlistText = response.data;
             if (typeof playlistText === 'string') {
                 const hostUrl = req.protocol + '://' + req.get('host');
-                // Rewrite absolute stream URLs if any
-                playlistText = playlistText.replace(/https:\/\/stream\.pimaxer\.in/g, `${hostUrl}/stream-proxy`);
-                
-                // Append the secure token to relative URLs and keys inside the playlist text
+                // Append the secure token to relative URLs and keys inside the playlist text, making TS segments absolute to Pimaxer
                 if (token) {
                     const tokenStr = encodeURIComponent(token);
                     const lines = playlistText.split('\n');
                     const newLines = lines.map(line => {
                         const trimmed = line.trim();
                         if (trimmed && !trimmed.startsWith('#')) {
-                            const separator = trimmed.includes('?') ? '&' : '?';
-                            return `${trimmed}${separator}token=${tokenStr}`;
+                            if (trimmed.includes('.m3u8')) {
+                                const separator = trimmed.includes('?') ? '&' : '?';
+                                return `${trimmed}${separator}token=${tokenStr}`;
+                            } else {
+                                // Direct absolute URL to Pimaxer for TS video segments to bypass Render bandwidth limit (100GB)
+                                return `https://stream.pimaxer.in/${uuid}/${trimmed}`;
+                            }
                         }
                         if (trimmed && trimmed.startsWith('#EXT-X-KEY:')) {
                             return trimmed.replace(/URI="([^"]+)"/, (match, uri) => {

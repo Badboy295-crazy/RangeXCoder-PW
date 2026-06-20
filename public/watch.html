@@ -620,10 +620,6 @@
     });
     vid.addEventListener('waiting',()=>{
       bufSpin.classList.add('on');
-      if (stallTimer) clearTimeout(stallTimer);
-      stallTimer = setTimeout(() => {
-        showPlaybackFallbackModal();
-      }, 5000);
     });
     vid.addEventListener('canplay',()=>{
       bufSpin.classList.remove('on');
@@ -1302,7 +1298,7 @@
         checkPlaybackTimer = null;
       }
       checkPlaybackTimer = setTimeout(() => {
-        if (!playbackStarted && (vid.paused || vid.currentTime === 0)) {
+        if (!playbackStarted) {
           showPlaybackFallbackModal();
         }
       }, 20000);

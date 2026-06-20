@@ -586,8 +586,11 @@
         document.getElementById('batchNavbarTitle').innerText = BATCH_NAME;
         document.title = BATCH_NAME + " | PW Zone";
 
-        // Map: encrypted subjectId → { name, avatarUrl } built from batch-details teacherIds
-        let teacherPhotoMap = {};
+        // Teacher photo maps built from batch-details API
+        // Three maps for robust matching: by subjectId, by teacher name (normalized), by subject name
+        let teacherPhotoMap = {};       // subjectId → { name, avatarUrl }
+        let teacherNameMap = {};        // normalizedTeacherName → { name, avatarUrl }
+        let subjectNameMap = {};        // normalizedSubjectName → { name, avatarUrl }
 
         async function initBatchWorkspace() {
             updLoader('Opening batch workspace...', 50);
@@ -598,6 +601,11 @@
             } finally {
                 hideLoader();
             }
+        }
+
+        // Normalize string for loose matching
+        function normStr(s) {
+            return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         }
 
         async function loadSubjectsData() {
@@ -621,18 +629,29 @@
                     return;
                 }
 
-                // Build teacher photo map: encrypted subjectId → { name, avatarUrl }
+                // Build all three teacher lookup maps from batch-details API
                 teacherPhotoMap = {};
+                teacherNameMap = {};
+                subjectNameMap = {};
+
                 resData.data.subjects.forEach(sub => {
-                    if (sub._id && sub.teacherIds && sub.teacherIds.length > 0) {
-                        const t = sub.teacherIds[0];
-                        const tName = [t.firstName, t.lastName].filter(Boolean).join(' ') || sub.description || sub.subject;
-                        let tAvatar = '';
-                        if (t.imageId && t.imageId.baseUrl && t.imageId.key) {
-                            tAvatar = `${t.imageId.baseUrl}${t.imageId.key}`;
-                        }
-                        teacherPhotoMap[sub._id] = { name: tName, avatarUrl: tAvatar };
+                    if (!sub.teacherIds || sub.teacherIds.length === 0) return;
+                    const t = sub.teacherIds[0];
+                    const tName = [t.firstName, t.lastName].filter(Boolean).join(' ') || sub.description || sub.subject;
+                    let tAvatar = '';
+                    if (t.imageId && t.imageId.baseUrl && t.imageId.key) {
+                        tAvatar = `${t.imageId.baseUrl}${t.imageId.key}`;
                     }
+                    const entry = { name: tName, avatarUrl: tAvatar };
+
+                    // Map 1: by subjectId
+                    if (sub._id) teacherPhotoMap[sub._id] = entry;
+
+                    // Map 2: by normalized teacher name
+                    if (tName) teacherNameMap[normStr(tName)] = entry;
+
+                    // Map 3: by normalized subject name
+                    if (sub.subject) subjectNameMap[normStr(sub.subject)] = entry;
                 });
 
                 container.innerHTML = '';
@@ -705,15 +724,53 @@
                     
                     const sched = item.data || item;
 
-                    // Resolve teacher info from teacherPhotoMap using encrypted subjectId
+                    // Resolve teacher info — COMPULSORY from batch-details API
+                    // Try 3 lookups: subjectId → teacher name → subject name
                     const schedSubjectId = (sched.subjectId && typeof sched.subjectId === 'object') ? sched.subjectId._id : sched.subjectId;
-                    const mappedTeacher = schedSubjectId ? teacherPhotoMap[schedSubjectId] : null;
+                    const schedSubjectName = (sched.subjectId && typeof sched.subjectId === 'object') ? (sched.subjectId.subject || sched.subjectId.name || '') : '';
+                    const schedTeacherName = (sched.teacherId && typeof sched.teacherId === 'object')
+                        ? ([sched.teacherId.firstName, sched.teacherId.lastName].filter(Boolean).join(' '))
+                        : (sched.teacherName || '');
+
+                    let mappedTeacher = null;
+                    // Lookup 1: exact subjectId
+                    if (schedSubjectId && teacherPhotoMap[schedSubjectId]) {
+                        mappedTeacher = teacherPhotoMap[schedSubjectId];
+                    }
+                    // Lookup 2: teacher name match
+                    if (!mappedTeacher && schedTeacherName) {
+                        mappedTeacher = teacherNameMap[normStr(schedTeacherName)] || null;
+                        // Partial match if exact fails
+                        if (!mappedTeacher) {
+                            const normT = normStr(schedTeacherName);
+                            for (const key of Object.keys(teacherNameMap)) {
+                                if (key.includes(normT) || normT.includes(key)) {
+                                    mappedTeacher = teacherNameMap[key];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // Lookup 3: subject name match
+                    if (!mappedTeacher && schedSubjectName) {
+                        mappedTeacher = subjectNameMap[normStr(schedSubjectName)] || null;
+                        if (!mappedTeacher) {
+                            const normS = normStr(schedSubjectName);
+                            for (const key of Object.keys(subjectNameMap)) {
+                                if (key.includes(normS) || normS.includes(key)) {
+                                    mappedTeacher = subjectNameMap[key];
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
                     const teacher = {
-                        name: mappedTeacher ? mappedTeacher.name : 'Batch Faculty',
+                        name: mappedTeacher ? mappedTeacher.name : (schedTeacherName || 'Batch Faculty'),
                         avatarUrl: mappedTeacher && mappedTeacher.avatarUrl ? mappedTeacher.avatarUrl : ''
                     };
-                    let avatarUrl = teacher.avatarUrl || "https://static.pw.live/5eb393ee95fab7468a79d189/ADMIN/a8a8837e-fa4d-4355-bbd5-214512154c23.png";
+                    // avatarUrl is ONLY from batch-details API — no static fallback image
+                    let avatarUrl = teacher.avatarUrl;
 
                     let timeDisplay = "04:00 PM";
                     if (sched.startTime) {

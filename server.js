@@ -21,6 +21,10 @@ app.use((req, res, next) => {
 });
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/api/ping', (req, res) => {
+    res.status(200).json({ success: true, message: 'alive' });
+});
+
 // New auth token provided by user
 const AUTH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3ODI0MDI5MDcuOTksImRhdGEiOnsiX2lkIjoiNjljZDMzOThiN2JiOWQzYjdlMDc1NzA0IiwidXNlcm5hbWUiOiI3OTk5MDk4Nzc2IiwiZmlyc3ROYW1lIjoiVWV1ZCIsIm9yZ2FuaXphdGlvbiI6eyJfaWQiOiI1ZWIzOTNlZTk1ZmFiNzQ2OGE3OWQxODkiLCJ3ZWJzaXRlIjoicGh5c2ljc3dhbGxhaC5jb20iLCJuYW1lIjoiUGh5c2ljc3dhbGxhaCJ9LCJyb2xlcyI6WyI1YjI3YmQ5NjU4NDJmOTUwYTc3OGM2ZWYiXSwiY291bnRyeUdyb3VwIjoiSU4iLCJ0eXBlIjoiVVNFUiJ9LCJqdGkiOiJfTG1scUlmWlFmMmtwMzBmSHBDSEZBXzY5Y2QzMzk4YjdiYjlkM2I3ZTA3NTcwNCIsImlhdCI6MTc4MTc5ODEwN30.6SoHPvh2YShzUx22s2WGFUmfwrhTe1cAHdJ4YMRtau0"; 
 

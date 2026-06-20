@@ -443,6 +443,7 @@
             border-radius: 4px;
         }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
 
@@ -732,7 +733,7 @@
                 console.warn("Direct CDN fetch failed, falling back to local proxy:", error);
                 try {
                     updLoader('Connecting to server proxy...', 80);
-                    const response = await fetch('/api/batches');
+                    const response = await fetch(BACKEND_URL + '/api/batches');
                     const resData = await response.json();
                     const data = decryptPayload(resData.payload);
                     const batchesList = data.batches || data || [];
@@ -935,8 +936,8 @@
         // ================= COMMUNITY REAL-TIME LOGIC =================
         let wsc = null;
         function initWebSocketCommunity() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            wsc = new WebSocket(`${protocol}//${window.location.host}`);
+            const wsUrl = BACKEND_URL.replace(/^http/, 'ws');
+            wsc = new WebSocket(wsUrl);
             
             wsc.onmessage = (event) => {
                 const eventData = JSON.parse(event.data);
@@ -975,7 +976,7 @@
             const container = document.getElementById('postsContainer');
             container.innerHTML = '<div class="status-msg"><i class="fas fa-spinner fa-spin"></i> Streaming threads...</div>';
             try {
-                const response = await fetch('/api/posts');
+                const response = await fetch(BACKEND_URL + '/api/posts');
                 const rawData = await response.json();
                 const resData = decryptPayload(rawData.payload);
                 container.innerHTML = '';
@@ -1070,7 +1071,7 @@
         async function toggleLikePost(postId) {
             playFeedbackSound();
             try {
-                await fetch('/api/posts/like', {
+                await fetch(BACKEND_URL + '/api/posts/like', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ postId, clientId })
@@ -1097,7 +1098,7 @@
             const uClass = localStorage.getItem('pwzone_user_class') || 'JEE Aspirant';
 
             try {
-                const response = await fetch('/api/posts/comment', {
+                const response = await fetch(BACKEND_URL + '/api/posts/comment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1159,7 +1160,7 @@
             const uClass = localStorage.getItem('pwzone_user_class') || 'JEE Aspirant';
 
             try {
-                const response = await fetch('/api/posts', {
+                const response = await fetch(BACKEND_URL + '/api/posts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1209,7 +1210,7 @@
             if (!password) return;
 
             try {
-                const response = await fetch('/api/admin/auth', {
+                const response = await fetch(BACKEND_URL + '/api/admin/auth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
@@ -1242,7 +1243,7 @@
             if (!token) return;
 
             try {
-                const response = await fetch('/api/admin/delete-post', {
+                const response = await fetch(BACKEND_URL + '/api/admin/delete-post', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ postId, token })

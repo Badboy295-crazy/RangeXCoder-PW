@@ -386,6 +386,7 @@
             border-radius: 4px;
         }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
 
@@ -606,7 +607,7 @@
                 </div>
             `).join('');
             try {
-                const response = await fetch(`/api/batch-details?batchId=${BATCH_ID}`);
+                const response = await fetch(BACKEND_URL + `/api/batch-details?batchId=${BATCH_ID}`);
                 const rawData = await response.json();
                 const resData = decryptPayload(rawData.payload);
 
@@ -668,7 +669,7 @@
             const section = document.getElementById('todaysClassSection');
             const rowContainer = document.getElementById('lecturesContainer');
             try {
-                const response = await fetch(`/api/todays-schedule?batchId=${BATCH_ID}`);
+                const response = await fetch(BACKEND_URL + `/api/todays-schedule?batchId=${BATCH_ID}`);
                 const rawData = await response.json();
                 const resData = decryptPayload(rawData.payload);
 
@@ -880,7 +881,7 @@
         async function launchLiveSchedulePlayer(scheduleId, subjectId, chapterId) {
             playFeedbackSound();
             try {
-                const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${subjectId}&scheduleId=${scheduleId}&tag=${chapterId}`);
+                const response = await fetch(BACKEND_URL + `/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${subjectId}&scheduleId=${scheduleId}&tag=${chapterId}`);
                 const resData = await response.json();
                 if (resData.success && resData.token) {
                     window.location.href = `/watch?token=${encodeURIComponent(resData.token)}&batchId=${encodeURIComponent(resData.rawBatchId || BATCH_ID)}&subjectId=${encodeURIComponent(resData.rawSubjectId || subjectId)}&scheduleId=${encodeURIComponent(resData.rawScheduleId || scheduleId)}`;
@@ -895,10 +896,10 @@
         async function launchDppQuiz(scheduleId, testId) {
             playFeedbackSound();
             try {
-                const response = await fetch(`/api/get-token?type=dpp-quiz&batchId=${BATCH_ID}&scheduleId=${scheduleId}&testId=${testId}&tag=Start`);
+                const response = await fetch(BACKEND_URL + `/api/get-token?type=dpp-quiz&batchId=${BATCH_ID}&scheduleId=${scheduleId}&testId=${testId}&tag=Start`);
                 const resData = await response.json();
                 if (resData.success && resData.token) {
-                    window.open(`/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
+                    window.open(BACKEND_URL + `/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
                 } else {
                     alert("Unable to load DPP quiz token.");
                 }

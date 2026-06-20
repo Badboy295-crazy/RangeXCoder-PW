@@ -286,6 +286,7 @@
             border-radius: 4px;
         }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
 
@@ -501,7 +502,7 @@
                 `).join('');
             }
             try {
-                const response = await fetch(`/api/topics?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&page=${currentPage}`);
+                const response = await fetch(BACKEND_URL + `/api/topics?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&page=${currentPage}`);
                 const rawData = await response.json();
                 const resData = decryptPayload(rawData.payload);
 

@@ -305,6 +305,7 @@
     .att-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
     .att-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
   </style>
+  <script src="config.js"></script>
 </head>
 <body>
 
@@ -1438,7 +1439,7 @@
         }, 15000);
         
         try {
-            const response = await fetch('/api/video-data?token=' + encodeURIComponent(token));
+            const response = await fetch(BACKEND_URL + '/api/video-data?token=' + encodeURIComponent(token));
             const resData = await response.json();
             
             if (redirected) return;
@@ -1651,10 +1652,10 @@
 
     window.openAttachment = async function(id, type) {
       try {
-        const response = await fetch(`/api/get-token?type=${type}&batchId=${encodeURIComponent(decryptedBatchId)}&subjectId=${encodeURIComponent(decryptedSubjectId)}&scheduleId=${encodeURIComponent(id)}`);
+        const response = await fetch(BACKEND_URL + `/api/get-token?type=${type}&batchId=${encodeURIComponent(decryptedBatchId)}&subjectId=${encodeURIComponent(decryptedSubjectId)}&scheduleId=${encodeURIComponent(id)}`);
         const resData = await response.json();
         if (resData.success && resData.token) {
-          window.open(`/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
+          window.open(BACKEND_URL + `/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
         } else {
           alert("Failed to load attachment: " + (resData.message || "Unknown error"));
         }

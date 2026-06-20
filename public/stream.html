@@ -380,6 +380,7 @@
             border-radius: 4px;
         }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
 
@@ -628,7 +629,7 @@
                     // Fetch topics to identify chapters with BOTH videos and notes
                     const pages = [1, 2, 3];
                     const topicsPromises = pages.map(p => 
-                        fetch(`/api/topics?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&page=${p}`)
+                        fetch(BACKEND_URL + `/api/topics?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&page=${p}`)
                             .then(r => r.json())
                             .then(data => decryptPayload(data.payload).data || [])
                             .catch(() => [])
@@ -651,7 +652,7 @@
 
                     if (activeSection === 'dpp') {
                         const quizPromises = qualifyingTopics.map(t => 
-                            fetch(`/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${t._id}`)
+                            fetch(BACKEND_URL + `/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${t._id}`)
                                 .then(r => r.json())
                                 .then(data => decryptPayload(data.payload).data || [])
                                 .catch(() => [])
@@ -675,7 +676,7 @@
                         if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
 
                         const contentPromises = qualifyingTopics.map(t => 
-                            fetch(`/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${t._id}`)
+                            fetch(BACKEND_URL + `/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${t._id}`)
                                 .then(r => r.json())
                                 .then(data => decryptPayload(data.payload).data || [])
                                 .catch(() => [])
@@ -697,7 +698,7 @@
                     }
                 } else {
                     if (activeSection === 'dpp') {
-                        const response = await fetch(`/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${CHAPTER_ID}`);
+                        const response = await fetch(BACKEND_URL + `/api/dpp-tests?batchId=${BATCH_ID}&batchSubjectId=${SUBJECT_ID}&chapterId=${CHAPTER_ID}`);
                         const rawData = await response.json();
                         const resData = decryptPayload(rawData.payload);
                         renderQuizLayout(resData.data || []);
@@ -707,7 +708,7 @@
                         if (activeSection === 'dpp-pdf') mappedType = 'DppNotes';
                         if (activeSection === 'dpp-videos') mappedType = 'DppVideos';
 
-                        const response = await fetch(`/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${CHAPTER_ID}`);
+                        const response = await fetch(BACKEND_URL + `/api/contents?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&contentType=${mappedType}&tag=${CHAPTER_ID}`);
                         const rawData = await response.json();
                         const resData = decryptPayload(rawData.payload);
                         
@@ -734,7 +735,7 @@
                 
                 row.onclick = async () => {
                     try {
-                        const response = await fetch(`/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&scheduleId=${item._id}&tag=${CHAPTER_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterSlug=${encodeURIComponent(CHAPTER_SLUG)}`);
+                        const response = await fetch(BACKEND_URL + `/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&scheduleId=${item._id}&tag=${CHAPTER_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterSlug=${encodeURIComponent(CHAPTER_SLUG)}`);
                         const resData = await response.json();
                         if (resData.success && resData.token) {
                             window.location.href = `/watch?token=${encodeURIComponent(resData.token)}&batchId=${encodeURIComponent(resData.rawBatchId || BATCH_ID)}&subjectId=${encodeURIComponent(resData.rawSubjectId || SUBJECT_ID)}&scheduleId=${encodeURIComponent(resData.rawScheduleId || item._id)}`;
@@ -778,10 +779,10 @@
                 row.className = 'sheet-row-card';
                 row.onclick = async () => {
                     try {
-                        const response = await fetch(`/api/get-token?type=${isDpp ? 'dpp-pdf' : 'note'}&batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&scheduleId=${item._id}`);
+                        const response = await fetch(BACKEND_URL + `/api/get-token?type=${isDpp ? 'dpp-pdf' : 'note'}&batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&scheduleId=${item._id}`);
                         const resData = await response.json();
                         if (resData.success && resData.token) {
-                            window.open(`/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
+                            window.open(BACKEND_URL + `/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
                         }
                     } catch (error) {
                         console.error("Failed to generate sheet token:", error);
@@ -819,10 +820,10 @@
                 
                 row.onclick = async () => {
                     try {
-                        const response = await fetch(`/api/get-token?type=dpp-quiz&batchId=${BATCH_ID}&scheduleId=${scheduleId}&testId=${testId}&tag=${encodeURIComponent(tagText)}`);
+                        const response = await fetch(BACKEND_URL + `/api/get-token?type=dpp-quiz&batchId=${BATCH_ID}&scheduleId=${scheduleId}&testId=${testId}&tag=${encodeURIComponent(tagText)}`);
                         const resData = await response.json();
                         if (resData.success && resData.token) {
-                            window.open(`/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
+                            window.open(BACKEND_URL + `/api/play?token=${encodeURIComponent(resData.token)}`, '_blank');
                         }
                     } catch (error) {
                         console.error("Failed to generate quiz token:", error);

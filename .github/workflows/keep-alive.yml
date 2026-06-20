@@ -1,0 +1,14 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: '*/9 * * * *' # Run every 9 minutes
+  workflow_dispatch: # Enable manual run
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend
+        run: |
+          curl -s -f https://rangexcoder-pw-aqaw.onrender.com/api/ping || echo "Ping failed"

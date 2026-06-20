@@ -728,6 +728,62 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
         console.error('Worker video-url-details failed:', err.message);
     }
     
+    // Fallback if worker fails: Fetch directly from Penpencil API and use local stream proxy
+    if (!videoUrl) {
+        console.log("Worker failed, trying native Penpencil API direct fetch...");
+        try {
+            let contents = [];
+            const targetTag = tag || 'ALL_CONTENT';
+            if (targetTag && targetTag !== 'ALL_CONTENT') {
+                const contentsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${targetTag}`;
+                const res = await axios.get(contentsUrl, { headers: HEADERS, timeout: 5000 });
+                contents = res.data?.data || [];
+            }
+            
+            let match = contents.find(item => item._id === scheduleId);
+            
+            if (!match) {
+                const topicsUrl = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/topics?page=1`;
+                const topicsRes = await axios.get(topicsUrl, { headers: HEADERS, timeout: 5000 });
+                const topics = topicsRes.data?.data || [];
+                
+                const reqs = topics.map(t => 
+                    axios.get(`https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/contents?page=1&contentType=videos&tag=${t._id}`, { headers: HEADERS, timeout: 5000 })
+                        .then(res => res.data?.data || [])
+                        .catch(() => [])
+                );
+                const results = await Promise.all(reqs);
+                for (const items of results) {
+                    const found = items.find(item => item._id === scheduleId);
+                    if (found) {
+                        match = found;
+                        break;
+                    }
+                }
+            }
+            
+            if (match) {
+                const videoId = match.videoDetails?._id || match.videoDetails?.id;
+                if (videoId) {
+                    const videoRes = await axios.get(`https://api.penpencil.co/v1/videos/${videoId}`, { headers: HEADERS, timeout: 5000 });
+                    const rawVideoUrl = videoRes.data?.data?.videoUrl;
+                    if (rawVideoUrl) {
+                        const uuidMatch = rawVideoUrl.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+                        if (uuidMatch) {
+                            const uuid = uuidMatch[1];
+                            const expires = Date.now() + 6 * 3600 * 1000;
+                            const streamToken = encrypt(`${uuid}:${expires}`);
+                            videoUrl = `https://rangexcoder-pw-aqaw.onrender.com/stream-proxy/${uuid}/master.m3u8?token=${encodeURIComponent(streamToken)}`;
+                            console.log("Successfully fetched and signed direct PW stream:", videoUrl);
+                        }
+                    }
+                }
+            }
+        } catch (fallbackErr) {
+            console.error('Native direct PW API fallback failed:', fallbackErr.message);
+        }
+    }
+    
     if (!videoUrl) {
         throw new Error('Failed to get video URL from worker API.');
     }

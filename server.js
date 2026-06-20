@@ -962,6 +962,23 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
         try {
             const matchItem = contentData.find(item => item._id === scheduleId);
             let videoDetailsId = matchItem?.videoDetails?.id || matchItem?.videoDetails?._id;
+            
+            // If not found in contentData, try to lookup from todays-schedule API to get real videoDetailsId
+            if (!videoDetailsId) {
+                try {
+                    console.log(`Lookup videoDetailsId for scheduleId ${scheduleId} from todays-schedule API...`);
+                    const schedRes = await axios.get(`https://api.penpencil.co/v2/batches/${batchId}/todays-schedule`, { headers: HEADERS, timeout: 5000 });
+                    const schedList = schedRes.data?.data || [];
+                    const schedMatch = schedList.find(s => s._id === scheduleId);
+                    if (schedMatch && schedMatch.videoDetails) {
+                        videoDetailsId = schedMatch.videoDetails.id || schedMatch.videoDetails._id;
+                        console.log(`Found videoDetailsId from todays-schedule: ${videoDetailsId}`);
+                    }
+                } catch (schedErr) {
+                    console.warn("Failed to lookup schedule in todays-schedule for videoDetailsId:", schedErr.message);
+                }
+            }
+
             if (!videoDetailsId && scheduleId) {
                 videoDetailsId = scheduleId;
             }
@@ -1012,6 +1029,37 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
             }
         } catch (err) {
             console.error("Dynamic DRM key resolution failed:", err.message);
+        }
+    }
+
+    // Last-resort fallback: If stream is DASH (.mpd) but no DRM keys were successfully resolved,
+    // fetch the schedule-details page from stream.testuk.org to extract the correct keys and video URL.
+    if (!extractedFromTestuk && videoUrl && videoUrl.toLowerCase().includes('.mpd') && keys.length === 0) {
+        console.log("No keys resolved for DASH stream, trying stream.testuk.org schedule-details fallback to fetch keys...");
+        try {
+            const scheduleDetailsUrl = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=video`;
+            const response = await axios.get(scheduleDetailsUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                },
+                timeout: 8000
+            });
+            const html = response.data;
+            const videoDataMatch = html.match(/const\s+VIDEO_DATA\s*=\s*({[\s\S]*?});/);
+            if (videoDataMatch) {
+                const parsedVideoData = JSON.parse(videoDataMatch[1]);
+                if (parsedVideoData && parsedVideoData.url) {
+                    videoUrl = parsedVideoData.url;
+                    drmType = parsedVideoData.drmType || "none";
+                    if (parsedVideoData.keys) {
+                        keys = parsedVideoData.keys;
+                    }
+                    extractedFromTestuk = true;
+                    console.log("Successfully extracted keys and stream URL from stream.testuk.org fallback!");
+                }
+            }
+        } catch (testukErr) {
+            console.error('stream.testuk.org last-resort fallback failed:', testukErr.message);
         }
     }
     

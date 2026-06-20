@@ -1277,6 +1277,12 @@ app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
             let playlistText = response.data;
             if (typeof playlistText === 'string') {
                 const hostUrl = req.protocol + '://' + req.get('host');
+                
+                // Get the directory path from subPath to handle nested segment paths (e.g. hls/720/000.ts)
+                const pathParts = subPath.split('/');
+                pathParts.pop(); // Remove file name
+                const dirPath = pathParts.length > 0 ? pathParts.join('/') + '/' : '';
+
                 // Append the secure token to relative URLs and keys inside the playlist text, making TS segments absolute to Pimaxer
                 if (token) {
                     const tokenStr = encodeURIComponent(token);
@@ -1289,7 +1295,7 @@ app.get(/^\/stream-proxy\/([a-zA-Z0-9_-]+)\/(.+)$/, async (req, res) => {
                                 return `${trimmed}${separator}token=${tokenStr}`;
                             } else {
                                 // Direct absolute URL to Pimaxer for TS video segments to bypass Render bandwidth limit (100GB)
-                                return `https://stream.pimaxer.in/${uuid}/${trimmed}`;
+                                return `https://stream.pimaxer.in/${uuid}/${dirPath}${trimmed}`;
                             }
                         }
                         if (trimmed && trimmed.startsWith('#EXT-X-KEY:')) {

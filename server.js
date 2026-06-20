@@ -715,6 +715,10 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
     
     // 1. Fetch video URL details (MPD/stream URL)
     let videoUrl = '';
+    let keys = [];
+    let drmType = "none";
+    let extractedFromTestuk = false;
+    let slides = [];
     try {
         const videoUrlRes = await axios.get(`${WORKER_BASE}/video-url-details`, {
             params: { batchId, childId: scheduleId, subjectId },
@@ -781,6 +785,52 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
             }
         } catch (fallbackErr) {
             console.error('Native direct PW API fallback failed:', fallbackErr.message);
+        }
+    }
+
+    // Fallback 3: Try to extract from stream.testuk.org schedule-details
+    if (!videoUrl) {
+        console.log("PW API fallback failed, trying stream.testuk.org schedule-details fallback...");
+        try {
+            const scheduleDetailsUrl = `https://stream.testuk.org/schedule-details?batchId=${batchId}&subjectId=${subjectId}&scheduleId=${scheduleId}&tap=video`;
+            const response = await axios.get(scheduleDetailsUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                },
+                timeout: 8000
+            });
+            const html = response.data;
+            const videoDataMatch = html.match(/const\s+VIDEO_DATA\s*=\s*({[\s\S]*?});/);
+            if (videoDataMatch) {
+                const parsedVideoData = JSON.parse(videoDataMatch[1]);
+                if (parsedVideoData && parsedVideoData.url) {
+                    videoUrl = parsedVideoData.url;
+                    drmType = parsedVideoData.drmType || "none";
+                    if (parsedVideoData.keys) {
+                        keys = parsedVideoData.keys;
+                    }
+                    extractedFromTestuk = true;
+                    console.log("Successfully extracted video details from stream.testuk.org!");
+                    
+                    // Parse slides if available
+                    const slidesMatch = html.match(/const\s+SLIDES\s*=\s*(\[[\s\S]*?\]);/);
+                    if (slidesMatch) {
+                        try {
+                            slides = JSON.parse(slidesMatch[1]);
+                        } catch (e) {
+                            console.error("Failed to parse extracted slides:", e.message);
+                        }
+                    }
+                    
+                    // Extract topic name from title
+                    const titleMatch = html.match(/<title>([\s\S]*?)<\/title>/i);
+                    if (titleMatch) {
+                        topicName = titleMatch[1].trim();
+                    }
+                }
+            }
+        } catch (testukErr) {
+            console.error('stream.testuk.org fallback failed:', testukErr.message);
         }
     }
     
@@ -871,18 +921,19 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
     }
     
     // 3. Fetch slides
-    let slides = [];
-    try {
-        const slidesRes = await axios.get(`${WORKER_BASE}/slides`, {
-            params: { batchId, subjectId, scheduleId },
-            timeout: 10000
-        });
-        const slidesData = slidesRes.data;
-        if (slidesData?.success && slidesData?.data) {
-            slides = slidesData.data;
+    if (slides.length === 0) {
+        try {
+            const slidesRes = await axios.get(`${WORKER_BASE}/slides`, {
+                params: { batchId, subjectId, scheduleId },
+                timeout: 10000
+            });
+            const slidesData = slidesRes.data;
+            if (slidesData?.success && slidesData?.data) {
+                slides = slidesData.data;
+            }
+        } catch (err) {
+            console.error('Worker slides failed:', err.message);
         }
-    } catch (err) {
-        console.error('Worker slides failed:', err.message);
     }
     
     // Find the current lecture item to extract the associated dppScheduleId
@@ -907,61 +958,61 @@ async function getPWVideoData(batchId, subjectId, scheduleId, tag, subjectSlug, 
     }));
 
     // 4. Resolve Dynamic ClearKeys (KID and KEY) for Shaka Player DASH DRM decryption
-    let keys = [];
-    let drmType = "none";
-    try {
-        const matchItem = contentData.find(item => item._id === scheduleId);
-        let videoDetailsId = matchItem?.videoDetails?.id || matchItem?.videoDetails?._id;
-        if (!videoDetailsId && scheduleId) {
-            videoDetailsId = scheduleId;
-        }
+    if (!extractedFromTestuk) {
+        try {
+            const matchItem = contentData.find(item => item._id === scheduleId);
+            let videoDetailsId = matchItem?.videoDetails?.id || matchItem?.videoDetails?._id;
+            if (!videoDetailsId && scheduleId) {
+                videoDetailsId = scheduleId;
+            }
 
-        if (videoDetailsId) {
-            let keyHex = '';
-            // Try HLS key API first
-            try {
-                const keyRes = await axios.get(`https://api.penpencil.co/v1/videos/get-hls-key?videoId=${videoDetailsId}`, {
-                    headers: HEADERS,
-                    responseType: 'arraybuffer',
-                    timeout: 5000
-                });
-                keyHex = Buffer.from(keyRes.data).toString('hex');
-            } catch (err) {
-                console.warn(`HLS key API failed for videoId ${videoDetailsId}:`, err.message);
-                // Fallback: Try get-drm-key API
+            if (videoDetailsId) {
+                let keyHex = '';
+                // Try HLS key API first
                 try {
-                    const keyRes = await axios.get(`https://api.penpencil.co/v3/files/get-drm-key?videoId=${videoDetailsId}`, {
+                    const keyRes = await axios.get(`https://api.penpencil.co/v1/videos/get-hls-key?videoId=${videoDetailsId}`, {
                         headers: HEADERS,
                         responseType: 'arraybuffer',
                         timeout: 5000
                     });
                     keyHex = Buffer.from(keyRes.data).toString('hex');
-                } catch (drmErr) {
-                    console.error(`DRM key API also failed for videoId ${videoDetailsId}:`, drmErr.message);
-                }
-            }
-
-            // Extract KID from MPD XML
-            if (keyHex && videoUrl && videoUrl.toLowerCase().includes('.mpd')) {
-                try {
-                    const mpdRes = await axios.get(videoUrl, { timeout: 5000 });
-                    const mpdXml = mpdRes.data;
-                    const kidMatch = mpdXml.match(/cenc:default_KID="([^"]+)"/);
-                    if (kidMatch) {
-                        const kidHex = kidMatch[1].replace(/-/g, '').toLowerCase().trim();
-                        keys.push(`${kidHex}:${keyHex}`);
-                        drmType = "clearkey";
-                        console.log(`Successfully resolved dynamic clearKey DRM key for video ${videoDetailsId}: ${kidHex}:${keyHex}`);
-                    } else {
-                        console.warn("No cenc:default_KID found in MPD manifest file.");
+                } catch (err) {
+                    console.warn(`HLS key API failed for videoId ${videoDetailsId}:`, err.message);
+                    // Fallback: Try get-drm-key API
+                    try {
+                        const keyRes = await axios.get(`https://api.penpencil.co/v3/files/get-drm-key?videoId=${videoDetailsId}`, {
+                            headers: HEADERS,
+                            responseType: 'arraybuffer',
+                            timeout: 5000
+                        });
+                        keyHex = Buffer.from(keyRes.data).toString('hex');
+                    } catch (drmErr) {
+                        console.error(`DRM key API also failed for videoId ${videoDetailsId}:`, drmErr.message);
                     }
-                } catch (mpdErr) {
-                    console.error("Failed to fetch MPD manifest for KID extraction:", mpdErr.message);
+                }
+
+                // Extract KID from MPD XML
+                if (keyHex && videoUrl && videoUrl.toLowerCase().includes('.mpd')) {
+                    try {
+                        const mpdRes = await axios.get(videoUrl, { timeout: 5000 });
+                        const mpdXml = mpdRes.data;
+                        const kidMatch = mpdXml.match(/cenc:default_KID="([^"]+)"/);
+                        if (kidMatch) {
+                            const kidHex = kidMatch[1].replace(/-/g, '').toLowerCase().trim();
+                            keys.push(`${kidHex}:${keyHex}`);
+                            drmType = "clearkey";
+                            console.log(`Successfully resolved dynamic clearKey DRM key for video ${videoDetailsId}: ${kidHex}:${keyHex}`);
+                        } else {
+                            console.warn("No cenc:default_KID found in MPD manifest file.");
+                        }
+                    } catch (mpdErr) {
+                        console.error("Failed to fetch MPD manifest for KID extraction:", mpdErr.message);
+                    }
                 }
             }
+        } catch (err) {
+            console.error("Dynamic DRM key resolution failed:", err.message);
         }
-    } catch (err) {
-        console.error("Dynamic DRM key resolution failed:", err.message);
     }
     
     return {

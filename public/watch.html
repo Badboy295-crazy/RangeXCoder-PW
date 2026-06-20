@@ -316,7 +316,7 @@
       <div class="load-title">PW<span style="color: var(--accent); margin-left: 4px;">Zone</span></div>
       <div id="loadMsg">Securing Connection...</div>
       <div id="loadStage">Initializing DRM Stream Node</div>
-      <div style="font-size: 11px; color: var(--accent); margin-top: -6px; font-weight: 600;">Wait 15 sec to load video</div>
+      <div style="font-size: 11px; color: var(--accent); margin-top: -6px; font-weight: 600; text-align: center; max-width: 90%; line-height: 1.4;">If video not started playing so wait for 7 sec to play on fallback player</div>
       <div class="progress-container">
         <div class="progress-bar-fill" id="ovLoadBarFill"></div>
       </div>
@@ -563,7 +563,7 @@
         
         // Open the fallback external schedule details link
         const fallbackUrl = `https://stream.testuk.org/schedule-details?batchId=${encodeURIComponent(decryptedRawBatchId)}&subjectId=${encodeURIComponent(decryptedRawSubjectId)}&scheduleId=${encodeURIComponent(decryptedRawScheduleId)}&tap=video`;
-        window.open(fallbackUrl, '_blank');
+        window.location.href = fallbackUrl;
       };
     }
 
@@ -1140,7 +1140,24 @@
       console.error("Player error:", msg);
       errMsg.textContent = msg;
       ovErr.classList.add('on');
-      setTimeout(showPlaybackFallbackModal, 1000);
+      
+      if (!isRedirectingFallback) {
+        isRedirectingFallback = true;
+        let count = 7;
+        const updateCountdown = () => {
+          errMsg.innerHTML = msg + `<br><br><span style='color: #a0a5c0; font-size: 13px;'>Direct stream failed. Redirecting to backup player in <strong style="color: var(--accent); font-size: 15px;">${count}</strong> seconds...</span>`;
+          if (count <= 0) {
+            const fallbackUrl = `https://stream.testuk.org/schedule-details?batchId=${encodeURIComponent(decryptedRawBatchId)}&subjectId=${encodeURIComponent(decryptedRawSubjectId)}&scheduleId=${encodeURIComponent(decryptedRawScheduleId)}&tap=video`;
+            window.location.href = fallbackUrl;
+          } else {
+            count--;
+            setTimeout(updateCountdown, 1000);
+          }
+        };
+        updateCountdown();
+      } else {
+        setTimeout(showPlaybackFallbackModal, 1000);
+      }
     }
 
     /* ── URL HELPERS ───────────────────────────── */
@@ -1304,9 +1321,9 @@
       }
       checkPlaybackTimer = setTimeout(() => {
         if (!playbackStarted && (vid.paused || vid.currentTime === 0)) {
-          showPlaybackFallbackModal();
+          showError("Video playback failed to start.");
         }
-      }, 15000);
+      }, 7000);
       try{
         if(isNativeOnly){
           if(isYT(data.url)){initYT(data.url);return;}
@@ -1416,27 +1433,14 @@
         }, 900);
         
         let redirected = false;
-        // Fallback: If API call takes longer than 15 seconds, show fallback modal
+        // Fallback: If API call takes longer than 7 seconds, trigger error and fallback redirect
         const redirectTimeout = setTimeout(function() {
             if (redirected) return;
             redirected = true;
             clearInterval(stageTimer);
             clearInterval(progressTimer);
-            const fill = document.getElementById('ovLoadBarFill');
-            const txt = document.getElementById('ovLoadPercent');
-            if (fill) fill.style.width = '100%';
-            if (txt) txt.textContent = '100%';
-            
-            const ov = document.getElementById('ovLoad');
-            if (ov) {
-                ov.style.opacity = '0';
-                setTimeout(function() {
-                    ov.style.display = 'none';
-                }, 300);
-            }
-            
-            showPlaybackFallbackModal();
-        }, 15000);
+            showError("Connection or stream loading timed out.");
+        }, 7000);
         
         try {
             const response = await fetch(BACKEND_URL + '/api/video-data?token=' + encodeURIComponent(token));

@@ -591,6 +591,7 @@
         let teacherPhotoMap = {};       // subjectId → { name, avatarUrl }
         let teacherNameMap = {};        // normalizedTeacherName → { name, avatarUrl }
         let subjectNameMap = {};        // normalizedSubjectName → { name, avatarUrl }
+        let subjectSlugMap = {};        // subjectId → slug
 
         async function initBatchWorkspace() {
             updLoader('Opening batch workspace...', 50);
@@ -633,8 +634,10 @@
                 teacherPhotoMap = {};
                 teacherNameMap = {};
                 subjectNameMap = {};
+                subjectSlugMap = {};
 
                 resData.data.subjects.forEach(sub => {
+                    if (sub._id) subjectSlugMap[sub._id] = sub.slug || '';
                     if (!sub.teacherIds || sub.teacherIds.length === 0) return;
                     const t = sub.teacherIds[0];
                     const tName = [t.firstName, t.lastName].filter(Boolean).join(' ') || sub.description || sub.subject;
@@ -854,13 +857,15 @@
                     }
 
                     const isLive = (tagTextLabel === 'LIVE NOW');
+                    const isPlayable = (tagTextLabel === 'LIVE NOW' || tagTextLabel === 'LIVE ENDED');
 
                     const card = document.createElement('div');
                     card.id = `sched-card-${sched._id}`;
 
-                    const clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${sched.subjectId?._id || sched.subjectId}', '${sched.chapterId || ''}')`;
+                    const subSlug = subjectSlugMap[schedSubjectId] || '';
+                    const clickFnStr = `launchLiveSchedulePlayer('${sched._id}', '${schedSubjectId}', '${sched.chapterId || ''}', '${escapeJSString(subSlug)}')`;
                     
-                    if (isLive) {
+                    if (isPlayable) {
                         card.className = 'lecture-card clickable';
                         card.setAttribute('onclick', clickFnStr);
                     } else {
@@ -886,7 +891,7 @@
                     } else {
                         if (teacher.avatarUrl) {
                             thumbnailHtml = `
-                                <img src="${teacher.avatarUrl}" alt="${teacher.name}" class="teacher-avatar-img" style="width: 100%; height: 100%; object-fit: cover; z-index: 2;" onerror="showThumbnailFallback(this, '${escapeJSString(titleHeading)}', '${escapeJSString(teacher.name)}')">
+                                <img src="${teacher.avatarUrl}" alt="${teacher.name}" class="teacher-avatar-img" style="width: 100%; height: 100%; object-fit: contain; z-index: 2;" onerror="showThumbnailFallback(this, '${escapeJSString(titleHeading)}', '${escapeJSString(teacher.name)}')">
                             `;
                         } else {
                             const gradients = [
@@ -958,13 +963,21 @@
             `;
         }
 
-        async function launchLiveSchedulePlayer(scheduleId, subjectId, chapterId) {
+        async function launchLiveSchedulePlayer(scheduleId, subjectId, chapterId, subjectSlug = '') {
             playFeedbackSound();
             try {
-                const response = await fetch(BACKEND_URL + `/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${subjectId}&scheduleId=${scheduleId}&tag=${chapterId}`);
+                let tokenUrl = BACKEND_URL + `/api/get-token?type=video&batchId=${BATCH_ID}&subjectId=${subjectId}&scheduleId=${scheduleId}&tag=${chapterId}`;
+                if (subjectSlug) {
+                    tokenUrl += `&subjectSlug=${encodeURIComponent(subjectSlug)}`;
+                }
+                const response = await fetch(tokenUrl);
                 const resData = await response.json();
                 if (resData.success && resData.token) {
-                    window.location.href = `/watch?token=${encodeURIComponent(resData.token)}&batchId=${encodeURIComponent(resData.rawBatchId || BATCH_ID)}&subjectId=${encodeURIComponent(resData.rawSubjectId || subjectId)}&scheduleId=${encodeURIComponent(resData.rawScheduleId || scheduleId)}`;
+                    let watchUrl = `/watch?token=${encodeURIComponent(resData.token)}&batchId=${encodeURIComponent(resData.rawBatchId || BATCH_ID)}&subjectId=${encodeURIComponent(resData.rawSubjectId || subjectId)}&scheduleId=${encodeURIComponent(resData.rawScheduleId || scheduleId)}`;
+                    if (subjectSlug) {
+                        watchUrl += `&subjectSlug=${encodeURIComponent(subjectSlug)}`;
+                    }
+                    window.location.href = watchUrl;
                 } else {
                     alert("Unable to fetch live video stream token.");
                 }

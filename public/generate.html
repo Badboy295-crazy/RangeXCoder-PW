@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Access Required </title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Poppins', sans-serif; min-height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(-45deg, #0f172a, #1e1b4b, #4c1d95, #7c3aed); background-size: 400% 400%; animation: gradientShift 18s ease infinite; padding: 20px; position: relative; overflow: hidden; transform: translateZ(0); will-change: background-position; }
+body::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.1) 2px, transparent 3px), radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08) 1px, transparent 2px), radial-gradient(circle at 40% 70%, rgba(99, 102, 241, 0.1) 3px, transparent 4px), radial-gradient(circle at 70% 80%, rgba(67, 56, 202, 0.05) 1px, transparent 2px); background-size: 300px 300px, 200px 200px, 400px 400px, 150px 150px; animation: floatParticles 20s linear infinite; z-index: -1; will-change: transform; }
+
+@keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes floatParticles { 0% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-10px) translateX(-5px); } 100% { transform: translateY(0) translateX(0); } }
+
+.popup-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; backdrop-filter: blur(2px); }
+.popup { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); padding: 40px 35px; border-radius: 28px; max-width: 480px; width: 100%; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 25px 55px rgba(0, 0, 0, 0.35); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.15); position: relative; overflow: hidden; transform: translateZ(0); }
+.popup::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: linear-gradient(90deg, #8b5cf6, #4f46e5, #7c3aed); z-index: 1; }
+
+@keyframes popIn { from { opacity: 0; transform: scale(0.96) translateY(15px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+.top-action-btn { position: absolute; top: 20px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-size: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s ease; z-index: 10; }
+.top-action-btn:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.05); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+
+.logo { width: 85px; height: 85px; margin: 0 auto 20px auto; background: linear-gradient(135deg, #8b5cf6, #4f46e5, #7c3aed); border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: #fff; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4); transition: transform 0.3s ease; }
+.logo:hover { transform: translateY(-2px); }
+
+.badge-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; width: 100%; gap: 10px; }
+.access-info { font-size: 14px; color: #fbbf24; font-weight: 600; background: rgba(251, 191, 36, 0.1); padding: 8px 14px; border-radius: 16px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(251, 191, 36, 0.2); animation: pulse 2s infinite; }
+.time-badge { display: inline-flex; justify-content: center; align-items: center; color: #c7d2fe; font-size: 14px; font-weight: 500; gap: 6px; background: rgba(199, 210, 254, 0.08); padding: 8px 14px; border-radius: 16px; border: 1px solid rgba(199, 210, 254, 0.15); white-space: nowrap; }
+
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.25); } 70% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); } 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); } }
+
+.popup h1 { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 8px; text-align: center; }
+.popup p { color: #d1d5db; font-size: 15px; text-align: center; margin-bottom: 25px; }
+
+.howto { text-align: center; margin-bottom: 20px; }
+.howto a { color: #60a5fa; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; padding: 8px 16px; border-radius: 16px; background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.2); display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+.howto a:hover { background: rgba(96, 165, 250, 0.2); transform: translateY(-2px); }
+
+.buttons-container { display: flex; flex-direction: column; gap: 15px; margin-top: 5px; }
+button { padding: 18px; border: none; border-radius: 16px; font-size: 16px; font-weight: 600; cursor: pointer; color: #fff; transition: all 0.25s ease; display: flex; align-items: center; justify-content: center; gap: 12px; transform: translateZ(0); }
+button:hover { transform: translateY(-3px); opacity: 0.95; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); }
+.generate-btn { background: linear-gradient(135deg, #8b5cf6, #7c3aed, #6d28d9); width: 100%; }
+
+.disclaimer-box { margin-top: 18px; background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: 14px; padding: 12px 16px; text-align: center; display: flex; align-items: flex-start; gap: 8px; justify-content: center; }
+.disclaimer-box i { color: #f87171; font-size: 16px; margin-top: 2px; flex-shrink: 0; }
+.disclaimer-text { color: #fca5a5; font-size: 13px; font-weight: 500; line-height: 1.4; text-align: left; }
+
+.input-group { position: relative; width: 100%; margin-bottom: 18px; }
+.password-input { width: 100%; padding: 16px 48px 16px 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 16px; transition: all 0.2s; }
+.password-input:focus { outline: none; border-color: #60a5fa; background: rgba(255, 255, 255, 0.15); }
+.eye-toggle { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
+.eye-toggle:hover { color: #fff; }
+
+.password-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+.password-modal-content { background: rgba(30, 27, 75, 0.9); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); padding: 30px; border-radius: 24px; width: 100%; max-width: 400px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 25px 45px rgba(0,0,0,0.45); animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.12); }
+.password-modal-content h3 { color: #fff; text-align: center; margin-bottom: 18px; font-size: 20px; font-weight: 600; }
+.password-error { color: #ff6b6b; font-size: 14px; margin-bottom: 14px; text-align: center; display: none; background: rgba(255, 107, 107, 0.1); padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 107, 107, 0.15); }
+.password-btn-submit { background: linear-gradient(135deg, #10b981, #059669); width: 100%; margin-bottom: 12px; }
+#passwordCancel { width: 100%; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); }
+
+.progress-container { margin-top: 18px; display: none; width: 100%; height: 6px; background: rgba(255, 255, 255, 0.15); border-radius: 10px; overflow: hidden; }
+.progress-bar { height: 6px; width: 0; background: linear-gradient(90deg, #8b5cf6, #7c3aed, #4f46e5); transition: width 0.2s linear; }
+
+@media (max-width: 480px) { .popup { padding: 30px 20px; } .logo { width: 75px; height: 75px; font-size: 26px; } .popup h1 { font-size: 22px; } .top-action-btn { top: 15px; right: 15px; width: 40px; height: 40px; font-size: 20px; } .badge-wrapper { flex-direction: row; justify-content: space-between; } .access-info, .time-badge { font-size: 12px; padding: 6px 10px; } }
+</style>
+</head>
+<body>
+
+<div class="popup-container">
+    <div class="popup">
+        <div class="top-action-btn" id="passwordBtn" title="Use Password">
+            <i class="ri-user-3-line"></i>
+        </div>
+
+        <div class="logo">RXC</div>
+        
+        <div class="badge-wrapper">
+            <div class="access-info"><i class="ri-shield-keyhole-line"></i> 24 Hours Access</div>
+            <div class="time-badge" id="timeBadge">
+                <i class="ri-calendar-check-line"></i><span>Today Session</span>
+            </div>
+        </div>
+        
+        <h1>Access Required</h1>
+        <p>Verify to continue to the exclusive content</p>
+        
+        <div class="howto">
+            <a href="#" target="_blank"><i class="ri-question-line"></i><b>How to Generate Access?</b></a>
+        </div>
+        
+        <div class="buttons-container">
+            <button class="generate-btn" id="generateBtn"><i class="ri-key-2-line"></i> Click to Generate Access</button>
+        </div>
+
+        <div class="disclaimer-box">
+            <i class="ri-error-warning-line"></i>
+            <div class="disclaimer-text">
+                <b>Disclaimer:</b> If you are opening the website for the first time, please check how to get access first.
+            </div>
+        </div>
+        
+        <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+</div>
+
+<div class="password-modal" id="passwordModal">
+    <div class="password-modal-content">
+        <h3>Enter Password</h3>
+        <div class="input-group">
+            <input type="password" id="passwordInput" class="password-input" placeholder="Enter your password...">
+            <div class="eye-toggle" id="eyeToggle">
+                <i class="ri-eye-line" id="eyeIcon"></i>
+            </div>
+        </div>
+        <div class="password-error" id="passwordError">Invalid Password!</div>
+        <button class="password-btn-submit" id="passwordSubmit"><i class="ri-check-line"></i> Submit</button>
+        <button id="passwordCancel"><i class="ri-close-line"></i> Cancel</button>
+    </div>
+</div>
+
+<script>
+const firebaseConfig = { apiKey: "AIzaSyAtfYcbGS6x6QhiQimLVf4AktYsM9dppS0", authDomain: "generate-key-7026c.firebaseapp.com", projectId: "generate-key-7026c", storageBucket: "generate-key-7026c.firebasestorage.app", messagingSenderId: "916529298116", appId: "1:916529298116:web:d687761c54d4048d4c6791" };
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+const USER_EMAIL = "user.access@rangexcoder.com";
+const ACCESS_KEY = "learnox_access_token";
+const TARGET_DEST_KEY = "auth_target_destination";
+const ACCESS_DURATION = 24 * 60 * 60 * 1000; // 24 Hours
+
+// FUTURE-PROOF CONFIGURATION: Kisi bhi shortener network ke liye keyword set karein (jaise arolinks ke liye 'lksfy' ya 'arolinks')
+const SHORTLINK_REFERRER_KEYWORD = "lksfy.com"; 
+
+const generateBtn = document.getElementById("generateBtn"), passwordBtn = document.getElementById("passwordBtn"), passwordModal = document.getElementById("passwordModal"), passwordInput = document.getElementById("passwordInput"), passwordSubmit = document.getElementById("passwordSubmit"), passwordCancel = document.getElementById("passwordCancel"), passwordError = document.getElementById("passwordError"), progressContainer = document.getElementById("progressContainer"), progressBar = document.getElementById("progressBar"), eyeToggle = document.getElementById("eyeToggle"), eyeIcon = document.getElementById("eyeIcon");
+
+// Default Fallback Redirect
+const DEFAULT_MAIN_PAGE = "/pw/batches";
+
+function saveAccess() {
+    const t = Date.now();
+    localStorage.setItem(ACCESS_KEY, JSON.stringify({ timestamp: t, expires: t + ACCESS_DURATION, expiresAt: t + ACCESS_DURATION }));
+}
+
+function getRedirectDestination() {
+    const savedDest = localStorage.getItem(TARGET_DEST_KEY);
+    if (savedDest) return savedDest;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('dest') || DEFAULT_MAIN_PAGE;
+}
+
+function redirectToMain() {
+    const destination = getRedirectDestination();
+    localStorage.removeItem(TARGET_DEST_KEY); // Clean tracking storage
+    const separator = destination.includes('?') ? '&' : '?';
+    window.location.href = `${destination}${separator}auth=passed`;
+}
+
+function showProgress(cb) {
+    progressContainer.style.display = "block"; let w = 0;
+    let x = setInterval(() => { w += 4; progressBar.style.width = w + "%"; if (w >= 100) { clearInterval(x); cb(); } }, 16);
+}
+
+async function handlePasswordAccess() {
+    let pw = passwordInput.value.trim(); passwordError.style.display = "none";
+    if (!pw) { passwordError.textContent = "Please enter password"; passwordError.style.display = "block"; return; }
+    try {
+        await auth.signInWithEmailAndPassword(USER_EMAIL, pw);
+        passwordModal.style.display = "none";
+        showProgress(() => { 
+            saveAccess(); 
+            redirectToMain();
+        });
+        auth.signOut();
+    } catch (e) { passwordError.textContent = "Invalid password!"; passwordError.style.display = "block"; passwordInput.value = ""; }
+}
+
+passwordBtn.onclick = () => passwordModal.style.display = "flex";
+passwordCancel.onclick = () => { passwordModal.style.display = "none"; passwordInput.value = ""; passwordError.style.display = "none"; resetPasswordVisibility(); };
+passwordSubmit.onclick = handlePasswordAccess;
+
+eyeToggle.onclick = () => {
+    if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        eyeIcon.className = "ri-eye-off-line";
+    } else {
+        passwordInput.type = "password";
+        eyeIcon.className = "ri-eye-line";
+    }
+};
+
+function resetPasswordVisibility() {
+    passwordInput.type = "password";
+    eyeIcon.className = "ri-eye-line";
+}
+
+generateBtn.onclick = () => {
+    localStorage.setItem("short_pending", "yes");
+    // Redirection se pehle target URL lock karna
+    const currentDest = getRedirectDestination();
+    localStorage.setItem(TARGET_DEST_KEY, currentDest);
+    
+    const short = "https://arolinks.com/generate";
+    window.location.href = short;
+};
+
+function secureShortlinkReturn() {
+    const pending = localStorage.getItem("short_pending");
+    // Bulletproof validation check
+    if ((document.referrer.includes(SHORTLINK_REFERRER_KEYWORD) || document.referrer !== "") && pending === "yes") {
+        localStorage.removeItem("short_pending");
+        showProgress(() => { 
+            saveAccess(); 
+            redirectToMain();
+        });
+        return true;
+    }
+    return false;
+}
+
+function init() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const destParam = urlParams.get('dest');
+    if (destParam) {
+        localStorage.setItem(TARGET_DEST_KEY, destParam);
+    }
+
+    if (secureShortlinkReturn()) return;
+
+    // SSO Automatic Check: Agar 24h active token pehle se kisi dusre batch se create hua hai
+    const access = JSON.parse(localStorage.getItem(ACCESS_KEY));
+    if (access && access.expires > Date.now()) {
+        redirectToMain();
+    }
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

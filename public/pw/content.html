@@ -475,7 +475,7 @@
         document.title = SUBJECT_NAME + " | PW Zone";
         
         document.getElementById('customBackLinkBtn').onclick = () => {
-            window.location.href = `/subjects.html?batchId=${BATCH_ID}&batchName=${encodeURIComponent(BATCH_NAME)}`;
+            window.location.href = `/pw/subjects?batchId=${BATCH_ID}&batchName=${encodeURIComponent(BATCH_NAME)}`;
         };
         
         let currentPage = 1;
@@ -516,7 +516,7 @@
                      allContentCard.style.background = 'rgba(var(--accent-purple), 0.04)';
                      
                      allContentCard.onclick = () => {
-                         window.location.href = `/stream.html?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterId=ALL_CONTENT&chapterSlug=all&batchName=${encodeURIComponent(BATCH_NAME)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&chapterName=${encodeURIComponent("All Content")}&section=videos`;
+                         window.location.href = `/pw/stream?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterId=ALL_CONTENT&chapterSlug=all&batchName=${encodeURIComponent(BATCH_NAME)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&chapterName=${encodeURIComponent("All Content")}&section=videos`;
                      };
                      
                      allContentCard.innerHTML = `
@@ -546,7 +546,7 @@
                     rowDiv.className = 'topic-row-card';
                     
                     rowDiv.onclick = () => {
-                        window.location.href = `/stream.html?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterId=${topic._id}&chapterSlug=${encodeURIComponent(topic.slug || '')}&batchName=${encodeURIComponent(BATCH_NAME)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&chapterName=${encodeURIComponent(topic.name)}&section=videos`;
+                        window.location.href = `/pw/stream?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&chapterId=${topic._id}&chapterSlug=${encodeURIComponent(topic.slug || '')}&batchName=${encodeURIComponent(BATCH_NAME)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&chapterName=${encodeURIComponent(topic.name)}&section=videos`;
                     };
 
                     const videosCount = topic.videos !== undefined ? topic.videos : (topic.lectureVideos || 0);
@@ -623,7 +623,7 @@
                 mainContentView.style.display = 'block';
                 setTimeout(() => { mainContentView.style.opacity = 1; }, 50);
             } else {
-                window.location.href = 'batches.html';
+                window.location.href = '/pw/batches';
             }
         });
 

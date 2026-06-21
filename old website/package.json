@@ -1,0 +1,20 @@
+{
+  "name": "rangexcoder-sync-engine",
+  "version": "1.0.0",
+  "description": "Smart Dual-API Sync Engine for RangeXCoder",
+  "main": "sync.js",
+  "scripts": {
+    "start": "node sync.js",
+    "dev": "nodemon sync.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.0",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

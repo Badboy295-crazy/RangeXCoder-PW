@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping Render Backend
         run: |
-          curl -s -f https://rangexcoder-pw-aqaw.onrender.com/api/ping || echo "Ping failed"
+          curl -s -f https://rangexcoder-backend.onrender.com/api/ping || echo "Ping failed"

@@ -405,7 +405,7 @@
     <div class="container-wrapper" id="mainContentView">
         <div class="header-backbar">
             <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
-                <a href="batches.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+                <a href="/pw/batches" class="back-btn"><i class="fas fa-chevron-left"></i></a>
                 <div class="batch-headline-title" id="batchNavbarTitle">Loading Workspace...</div>
                 <div class="header-brand" style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted);">
                     <div class="logo-box" style="width: 22px; height: 22px; font-size: 10px; margin-right: 0; box-shadow: none; display: flex; align-items: center; justify-content: center;">PW</div>
@@ -663,7 +663,7 @@
                     rowDiv.className = 'subject-row-item-div';
                     
                     rowDiv.onclick = () => {
-                        window.location.href = `/content.html?batchId=${BATCH_ID}&subjectId=${sub._id}&subjectSlug=${encodeURIComponent(sub.slug || '')}&subjectName=${encodeURIComponent(sub.subject)}&batchName=${encodeURIComponent(BATCH_NAME)}`;
+                        window.location.href = `/pw/content?batchId=${BATCH_ID}&subjectId=${sub._id}&subjectSlug=${encodeURIComponent(sub.slug || '')}&subjectName=${encodeURIComponent(sub.subject)}&batchName=${encodeURIComponent(BATCH_NAME)}`;
                     };
 
                     let imageHTML = '';
@@ -1032,7 +1032,7 @@
                 mainContentView.style.display = 'block';
                 setTimeout(() => { mainContentView.style.opacity = 1; }, 50);
             } else {
-                window.location.href = 'batches.html';
+                window.location.href = '/pw/batches';
             }
         });
 

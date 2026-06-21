@@ -586,7 +586,7 @@
         document.title = CHAPTER_NAME + " | PW Zone";
 
         document.getElementById('streamBackBtn').onclick = () => {
-            window.location.href = `/content.html?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&batchName=${encodeURIComponent(BATCH_NAME)}`;
+            window.location.href = `/pw/content?batchId=${BATCH_ID}&subjectId=${SUBJECT_ID}&subjectSlug=${encodeURIComponent(SUBJECT_SLUG)}&subjectName=${encodeURIComponent(SUBJECT_NAME)}&batchName=${encodeURIComponent(BATCH_NAME)}`;
         };
 
         function initTabsHighlight() {
@@ -970,7 +970,7 @@
                 mainContentView.style.display = 'block';
                 setTimeout(() => { mainContentView.style.opacity = 1; }, 50);
             } else {
-                window.location.href = 'batches.html';
+                window.location.href = '/pw/batches';
             }
         });
 

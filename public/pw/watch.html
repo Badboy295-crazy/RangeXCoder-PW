@@ -26,7 +26,37 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
     (function() {
-      document.documentElement.setAttribute('data-theme', 'night');
+      const ACCESS_KEY = 'learnox_access_token';
+      const dataStr = localStorage.getItem(ACCESS_KEY);
+      let isAuthorized = false;
+      if (dataStr) {
+        try {
+          const sessionData = JSON.parse(dataStr);
+          const expiresAt = sessionData.expiresAt || (sessionData.timestamp + 24 * 60 * 60 * 1000);
+          if (expiresAt > Date.now()) {
+            isAuthorized = true;
+          }
+        } catch(e) {}
+      }
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auth') === 'passed') {
+        const t = Date.now();
+        localStorage.setItem(ACCESS_KEY, JSON.stringify({ timestamp: t, expires: t + 24 * 60 * 60 * 1000, expiresAt: t + 24 * 60 * 60 * 1000 }));
+        isAuthorized = true;
+        
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + window.location.search.replace(/[\?&]auth=passed/, '');
+        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+      }
+      
+      if (!isAuthorized) {
+        const currentPath = window.location.pathname + window.location.search;
+        window.location.href = `/generate?dest=${encodeURIComponent(currentPath)}`;
+        return;
+      }
+
+      const theme = localStorage.getItem('pwzone_theme') || 'night';
+      document.documentElement.setAttribute('data-theme', theme);
       const activeThemeClass = localStorage.getItem('pwzone_color_theme') || 'theme-classic';
       document.documentElement.className = activeThemeClass;
     })();

@@ -1,4 +1,19 @@
-/watch      /watch.html     200
-/subjects   /subjects.html  200
-/content    /content.html   200
-/stream     /stream.html    200
+# Clean URLs mapping for PhysicsWallah (PW)
+/pw/batches          /pw/batches.html          200
+/pw/subjects         /pw/subjects.html         200
+/pw/content          /pw/content.html          200
+/pw/stream           /pw/stream.html           200
+/pw/watch            /pw/watch.html            200
+
+# Clean URLs mapping for Next Toppers (NT) and Mission Jeet (MJ)
+/nexttoppers/batches /nexttoppers/batches.html 200
+/missonjeet/batches  /missonjeet/batches.html  200
+/generate            /generate.html            200
+
+# Proxy all API and backend routes to Render Backend
+/api/*                  https://rangexcoder-backend.onrender.com/api/:splat                  200
+/stream-proxy/*         https://rangexcoder-backend.onrender.com/stream-proxy/:splat         200
+/media/*                https://rangexcoder-backend.onrender.com/media/:splat                200
+/get-dpp-quiz           https://rangexcoder-backend.onrender.com/get-dpp-quiz                200
+/get-test-solution-video https://rangexcoder-backend.onrender.com/get-test-solution-video     200
+/:uuid/hls-key          https://rangexcoder-backend.onrender.com/:uuid/hls-key               200

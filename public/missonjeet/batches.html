@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mission Jeet</title>
+    
+    <script>
+        (function() {
+            const ACCESS_KEY = 'learnox_access_token';
+            const ACCESS_DURATION = 24 * 60 * 60 * 1000; 
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check return redirect validation from generator
+            if (urlParams.get('auth') === 'passed') {
+                const t = Date.now();
+                localStorage.setItem(ACCESS_KEY, JSON.stringify({ timestamp: t, expires: t + ACCESS_DURATION, expiresAt: t + ACCESS_DURATION }));
+                
+                // Clean browser address string line
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            }
+
+            // Universal Theme Initialization
+            const theme = localStorage.getItem('pwzone_theme') || 'night';
+            document.documentElement.setAttribute('data-theme', theme);
+            const activeThemeClass = localStorage.getItem('pwzone_color_theme') || 'theme-classic';
+            document.documentElement.className = activeThemeClass;
+        })();
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+        html, body { overflow-x: hidden !important; width: 100%; max-width: 100vw; -webkit-font-smoothing: antialiased; }
+
+        :root {
+            --primary: #000000; 
+            --accent-purple: #5c5be5;
+            --accent-hover: #4a49c6;
+            --secondary-rgb: 92, 91, 229;
+            --secondary: var(--accent-purple); 
+            --accent: var(--accent-hover);
+            --text-light: #FFFFFF; --text-muted: #CCCCCC; --text-dim: #888888;
+            --glass-bg: rgba(0, 10, 20, 0.6); 
+            --glass-border: rgba(var(--secondary-rgb), 0.45); 
+            --navbar-bg: rgba(0, 5, 10, 0.95); --footer-bg: #000205; 
+            --card-bg: linear-gradient(145deg, rgba(0, 10, 20, 0.9), rgba(0, 0, 0, 1));
+            --success: #00C851; --danger: #ff4444; --info: #33b5e5; --warning: #ffbb33;
+            --scrollbar-track: #00050a; --scrollbar-thumb: var(--accent-purple);
+        }
+
+        /* 12 Themes */
+        .theme-classic { --accent-purple: #5c5be5; --accent-hover: #4a49c6; --secondary-rgb: 92, 91, 229; }
+        .theme-teal { --accent-purple: #00f2fe; --accent-hover: #00c6ff; --secondary-rgb: 0, 242, 254; }
+        .theme-orange { --accent-purple: #ff7b00; --accent-hover: #e06c00; --secondary-rgb: 255, 123, 0; }
+        .theme-bluepurple { --accent-purple: #8a2be2; --accent-hover: #7b1fa2; --secondary-rgb: 138, 43, 226; }
+        .theme-sakura { --accent-purple: #ff69b4; --accent-hover: #ff1493; --secondary-rgb: 255, 105, 180; }
+        .theme-emerald { --accent-purple: #00ff66; --accent-hover: #00cc52; --secondary-rgb: 0, 255, 102; }
+        .theme-forest { --accent-purple: #00bfff; --accent-hover: #0080ff; --secondary-rgb: 0, 191, 255; }
+        .theme-crimson { --accent-purple: #ff2a2a; --accent-hover: #cc1b1b; --secondary-rgb: 255, 42, 42; }
+        .theme-gold { --accent-purple: #ffd700; --accent-hover: #cca300; --secondary-rgb: 255, 215, 0; }
+        .theme-aurora { --accent-purple: #39ff14; --accent-hover: #2ecf10; --secondary-rgb: 57, 255, 20; }
+        .theme-cyberpunk { --accent-purple: #ff00ff; --accent-hover: #cc00cc; --secondary-rgb: 255, 0, 255; }
+        .theme-silver { --accent-purple: #e2e8f0; --accent-hover: #cbd5e1; --secondary-rgb: 226, 232, 240; }
+
+        body { background: var(--primary); min-height: 100vh; color: var(--text-light); position: relative; }
+        
+        body.day-mode { 
+            --primary: #F4F7F6; 
+            --secondary-rgb: 92, 91, 229;
+            --text-light: #1A1A1A; 
+            --text-muted: #5A5A5A; 
+            --text-dim: #777777;
+            --navbar-bg: rgba(255, 255, 255, 0.95); 
+            --footer-bg: #FFFFFF; 
+            --card-bg: #FFFFFF; 
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --scrollbar-track: #E1E1E1; 
+            --glass-border: rgba(0, 0, 0, 0.08);
+        }
+        body.day-mode .batch-desc-box * { color: #1A1A1A !important; }
+        body.day-mode .footer-credit { background: #FFFFFF; border-color: rgba(var(--secondary-rgb), 0.3); }
+        body.day-mode .creator-name { color: #1A1A1A; text-shadow: none !important; }
+        body.day-mode .card-thumbnail { background: #F8F9FA; border-color: rgba(0,0,0,0.05); box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        .bg-glow-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; background: var(--primary); overflow: hidden; }
+        .bg-glow-wrapper::before { content: ''; position: absolute; top: 40%; left: 50%; width: 80%; padding-top: 80%; max-width: 900px; background: radial-gradient(circle, rgba(0, 123, 255, 0.15) 0%, rgba(0, 168, 255, 0.05) 40%, transparent 70%); filter: blur(50px); border-radius: 50%; transform: translate(-50%, -50%); animation: pulseGlowBg 8s infinite alternate ease-in-out; will-change: transform, opacity; }
+        @keyframes pulseGlowBg { 0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; } 100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } }
+
+        body.hide-numbers .order-badge { display: none !important; }
+
+        .access-timer-widget { position: fixed; bottom: 20px; left: 20px; background: rgba(0, 10, 20, 0.95); border: 1px solid var(--glass-border); color: var(--secondary); padding: 8px 15px; border-radius: 20px; font-weight: 800; z-index: 9999; display: flex; align-items: center; gap: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.8); font-size: 0.8rem; backdrop-filter: blur(10px); }
+        body.day-mode .access-timer-widget { background: #FFFFFF; box-shadow: 0 5px 20px rgba(0,0,0,0.1); border-color: rgba(0,168,255,0.3); }
+        
+        .global-live-btn { position: fixed; bottom: 75px; left: 20px; background: #FF0000; color: #FFF; border: 2px solid #FFF; border-radius: 30px; padding: 10px 20px; font-weight: 800; font-size: 0.95rem; cursor: pointer; z-index: 9999; box-shadow: 0 0 20px rgba(255, 0, 0, 0.8); animation: liveFlicker 1s infinite alternate; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px;}
+        @keyframes liveFlicker { 0% { box-shadow: 0 0 10px rgba(255,0,0,0.5); transform: scale(1); background: #cc0000; } 100% { box-shadow: 0 0 30px rgba(255,0,0,1); transform: scale(1.05); background: #ff3333; } }
+        
+        .logout-btn { background: #000; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 12px; cursor: pointer; font-size: 0.7rem; transition: 0.3s; }
+        body.day-mode .logout-btn { background: #FFF; color: #000; border-color: #DDD; }
+        .logout-btn:hover { background: var(--danger); color:#fff; border-color: var(--danger); }
+
+        .loader-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 99999; transition: opacity 0.5s ease; }
+        .loader-wrapper.hidden { opacity: 0; pointer-events: none; }
+        .loader-content { text-align: center; max-width: 400px; width: 90%; display: flex; flex-direction: column; align-items: center; }
+        .loader-logo { font-size: 3.5rem; font-weight: 800; margin-bottom: 2rem; color: var(--text-light); display: flex; align-items: center; justify-content: center; }
+        .loader-r-badge { display: flex; align-items: center; justify-content: center; width: 65px; height: 65px; background: linear-gradient(135deg, var(--secondary), var(--accent)); color: var(--primary); border-radius: 15px; font-size: 3.5rem; margin-right: 10px; box-shadow: 0 0 30px rgba(0,168,255,0.6); animation: pulse 1.5s infinite; line-height: 0; padding-bottom: 5px; }
+        @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
+        .loader-progress-container { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin: 2rem 0 1rem; }
+        .loader-progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--secondary), var(--accent)); border-radius: 2px; transition: width 0.3s ease; box-shadow: 0 0 15px var(--accent); }
+
+        .navbar { background: var(--navbar-bg); border-bottom: 1px solid var(--glass-border); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(15px); flex-wrap: wrap; gap: 1rem; box-shadow: 0 4px 30px rgba(0,0,0,0.5); }
+        body.day-mode .navbar { box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .logo { font-size: 2rem; font-weight: 800; display: flex; align-items: center; }
+        .logo a { color: var(--text-light); text-decoration: none; display: flex; align-items: center;}
+        .logo span { color: var(--secondary); text-shadow: 0 0 15px rgba(0,168,255,0.5); }
+        .nav-links { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; padding: 0.5rem 1.2rem; border-radius: 25px; transition: all 0.3s; cursor: pointer; font-weight: 600; font-size: 0.95rem;}
+        .nav-links a:hover, .nav-links a.active { color: var(--secondary); background: var(--glass-bg); border: 1px solid var(--glass-border); }
+        .theme-toggle { width: 40px; height: 40px; border: 1px solid var(--glass-border); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: all 0.3s; background: rgba(255,255,255,0.02); }
+        .theme-toggle:hover { background: var(--secondary); color: var(--primary); border-color: var(--secondary); }
+
+        .back-button { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-light); text-decoration: none; padding: 0.5rem 1.2rem; border-radius: 25px; margin: 1rem 5% 0; cursor: pointer; background: var(--glass-bg); border: 1px solid var(--glass-border); transition: all 0.3s; font-weight: 600; backdrop-filter: blur(10px); font-size: 0.9rem;}
+        .back-button:hover { background: var(--secondary); color: #fff; border-color: var(--secondary); box-shadow: 0 0 15px rgba(0,168,255,0.4); }
+
+        .container { width: 100%; max-width: 1400px; margin: 0 auto; padding: 1.5rem 5%; position: relative; z-index: 2; overflow-x: hidden; }
+
+        .animate-on-scroll { opacity: 0; transition: opacity 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); will-change: opacity, transform; }
+        .animate-on-scroll:nth-child(odd) { transform: translateX(-80px) scale(0.9); }
+        .animate-on-scroll:nth-child(even) { transform: translateX(80px) scale(0.9); }
+        .animate-on-scroll.visible { opacity: 1; transform: translateX(0) scale(1); }
+        
+        .fade-in-up { animation: fadeInUp 1s ease forwards; opacity: 0; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hero { text-align: center; padding: 3rem 5% 1rem; position: relative; }
+        .hero-logo-icon { font-size: 5rem; color: var(--secondary); text-shadow: 0 0 30px rgba(0,168,255,0.6); margin-bottom: 1rem; }
+        .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; line-height: 1.2; animation: dropDownBounce 1.2s ease forwards; opacity: 0; transform: translateY(-50px); }
+        @keyframes dropDownBounce { 0% { opacity: 0; transform: translateY(-50px); } 100% { opacity: 1; transform: translateY(0); } }
+        .hero h1 span { color: var(--secondary); text-shadow: 0 0 25px rgba(0,168,255,0.5); }
+        .hero p { color: var(--text-muted); max-width: 700px; margin: 0 auto 2rem; font-size: 1.1rem; line-height: 1.6; animation: fadeInDelay 1s ease forwards; opacity: 0;}
+        @keyframes fadeInDelay { 0% { opacity:0; } 100% { opacity:1; } }
+
+        .achievement-showcase { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin: 1rem 0 2rem; padding: 1.5rem; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 30px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        body.day-mode .achievement-showcase { box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .achievement-item { text-align: center; padding: 0.5rem 1rem; transition: all 0.3s; }
+        .achievement-number { font-size: 2rem; font-weight: 800; color: var(--secondary); display: block; text-shadow: 0 0 10px rgba(0,168,255,0.3);}
+        .achievement-item span:last-child { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;}
+
+        .hero-stats { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem;}
+        .stat-item { background: var(--card-bg); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 20px; min-width: 150px; transition: transform 0.3s; box-shadow: 0 5px 20px rgba(0,0,0,0.5); flex: 1; text-align: center;}
+        body.day-mode .stat-item { box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .stat-item:hover { border-color: var(--secondary); transform: translateY(-5px); }
+        .stat-number { font-size: 2.2rem; font-weight: 800; color: var(--text-light); display: block; margin-bottom: 5px;}
+        .stat-item span:last-child { color: var(--secondary); font-size: 0.85rem; font-weight: 600;}
+
+        .modern-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.2rem; margin: 2rem 0 3rem; }
+        .feature-tile { background: linear-gradient(145deg, rgba(0,168,255,0.05), transparent); border: 1px solid var(--glass-border); border-radius: 20px; padding: 1.5rem; text-align: center; transition: transform 0.3s; box-shadow: inset 0 0 10px rgba(0,168,255,0.02), 0 5px 15px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: center; align-items: center;}
+        body.day-mode .feature-tile { box-shadow: 0 5px 15px rgba(0,0,0,0.05); background: #FFF; border-color: rgba(0,0,0,0.05);}
+        .feature-tile:hover { box-shadow: 0 10px 25px rgba(0,168,255,0.2); border-color: var(--secondary); transform: translateY(-5px); }
+        .feature-tile i { font-size: 1.8rem; color: var(--secondary); margin-bottom: 1rem; }
+        .feature-tile h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--text-light); font-weight: 600; line-height: 1.2;}
+        .feature-tile p { font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin: 2rem 0 1.5rem; }
+        .section-header h2 { font-size: 1.8rem; border-left: 5px solid var(--secondary); padding-left: 1rem; color: var(--text-light); }
+
+        .trending-slider, .subjects-grid, .live-grid, .items-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(4, 1fr); width: 100%; }
+        
+        .trending-card, .subject-card, .item-card, .live-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 1.5rem; transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; height: 100%; position: relative; box-shadow: inset 0 0 20px rgba(0,168,255,0.02), 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; }
+        body.day-mode .trending-card, body.day-mode .subject-card, body.day-mode .item-card, body.day-mode .live-card { box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .trending-card:hover, .subject-card:hover, .item-card:hover, .live-card:hover { border-color: rgba(0,168,255,0.8); box-shadow: 0 15px 40px rgba(0,168,255,0.35); transform: translateY(-6px); z-index: 10;}
+
+        .order-badge { position: absolute; top: -1px; left: -1px; background: var(--secondary); color: #fff; font-weight: 800; border-bottom-right-radius: 15px; border-top-left-radius: 20px; padding: 5px 12px; font-size: 0.85rem; z-index: 15;}
+
+        .card-thumbnail { width: 100%; height: 160px; background: #000205; border-radius: 12px; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .card-thumbnail img { width: 100%; height: 100%; object-fit: contain; } 
+        .card-thumbnail i { font-size: 4rem; color: var(--secondary); text-shadow: 0 0 20px rgba(0,168,255,0.3);}
+
+        .card-content { display: flex; flex-direction: column; flex-grow: 1; }
+        .badges-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; gap: 5px; flex-wrap: wrap; }
+        
+        .trending-badge { background: rgba(0,168,255,0.1); color: var(--secondary); border: 1px solid rgba(0,168,255,0.4); padding: 0.3rem 0.8rem; border-radius: 25px; font-size: 0.75rem; font-weight: 600;}
+        .session-badge { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.2); padding: 0.3rem 0.8rem; border-radius: 25px; font-size: 0.75rem; font-weight: 600;}
+        body.day-mode .session-badge { background: #f0f0f0; border-color: #ddd; color: #555; }
+
+        .card-title { margin: 5px 0 10px; font-size: 1.15rem; line-height: 1.4; color: var(--text-light); flex-grow: 1; }
+        .trending-price { font-size: 1.6rem; font-weight: 800; color: var(--success); margin: 0.5rem 0 1rem; display:flex; align-items:center; gap:5px; text-shadow: 0 0 10px rgba(0,200,81,0.2); }
+        
+        .trending-btn, .subject-btn, .item-btn, .join-btn { background: transparent; border: 1px solid rgba(0,168,255,0.6); color: var(--secondary); padding: 0.8rem 1rem; border-radius: 12px; cursor: pointer; width: 100%; margin-top: auto; text-decoration: none; display: inline-block; text-align: center; transition: all 0.3s; font-weight: 600; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px;}
+        .trending-btn:hover, .subject-btn:hover, .item-btn:hover, .join-btn:hover:not(:disabled) { background: linear-gradient(90deg, var(--secondary), var(--accent)); color: #fff; border-color: transparent; box-shadow: 0 5px 15px rgba(0,168,255,0.4);}
+        .join-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; border-color: var(--text-dim); color: var(--text-dim);}
+
+        .batch-desc-box { background: var(--card-bg); padding: 2rem; border-radius: 20px; border: 1px solid var(--glass-border); color: #FFFFFF !important; font-size: 1rem; line-height: 1.8; overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-top: 1rem; width: 100%; }
+        
+        .live-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+        .live-badge { background: linear-gradient(135deg, #00A8FF, #007BFF); color: #fff; padding: 0.3rem 1rem; border-radius: 25px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;}
+        .live-subject { font-size: 1.3rem; color: var(--text-light); margin-bottom: 1rem; font-weight: 600; flex-grow: 1;}
+        .live-details { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0 1.5rem; }
+        .detail-item { text-align: center; padding: 0.8rem; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 0.85rem; color: var(--text-muted);}
+        body.day-mode .detail-item { background: #f9f9f9; border-color: #eee; }
+        .detail-item i { color: var(--secondary); margin-bottom: 5px; display: block; font-size: 1.2rem;}
+
+        .subject-header { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap;}
+        .subject-header h1 { font-size: 2.5rem; color: var(--text-light); margin: 0;}
+
+        .main-tab-buttons { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem;}
+        .main-tab-btn { background: transparent; border: none; color: var(--text-muted); padding: 0.8rem 2rem; border-radius: 12px; cursor: pointer; transition: all 0.3s; font-weight: 600; font-size: 1rem; position: relative;}
+        .main-tab-btn.active { color: var(--secondary); background: rgba(0,168,255,0.1); }
+        .main-tab-btn.active::after { content:''; position:absolute; bottom:-1rem; left:0; width:100%; height:3px; background:var(--secondary); border-radius:3px;}
+        .main-tab-btn:hover:not(.active) { color: var(--text-light); background: rgba(255,255,255,0.05); }
+        body.day-mode .main-tab-btn:hover:not(.active) { background: rgba(0,0,0,0.05); }
+        .tab-content { min-height: 300px; display:none; width: 100%; }
+        .tab-content.active { display:block; }
+
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 30000; max-width: 90%; }
+        .toast { background: rgba(0,10,20,0.95); border: 1px solid var(--glass-border); border-left: 4px solid transparent; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 1rem; color: white; box-shadow: 0 8px 25px rgba(0,0,0,0.5); animation: slideIn 0.3s ease; width: 100%;}
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.info { border-left-color: var(--info); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .footer { background: linear-gradient(145deg, #000205, #000000); border-top: 1px solid rgba(0,168,255,0.1); padding: 4rem 5% 2rem; margin-top: 4rem; width: 100%; position: relative; overflow: hidden; }
+        body.day-mode .footer { background: #ffffff; border-top-color: #eee; }
+        .footer-content { width: 100%; max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 4rem; position: relative; z-index: 2; }
+        .footer-brand { flex: 1 1 280px; }
+        .footer-logo { font-size: 2.4rem; font-weight: 800; margin-bottom: 1.2rem; display: flex; align-items: center; color: var(--text-light); }
+        .footer-logo a { text-decoration: none; color: var(--text-light); display: flex; align-items: center;}
+        .footer-logo span { color: var(--secondary); text-shadow: 0 0 15px var(--secondary); }
+        .footer-description { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; max-width: 320px; margin-bottom: 1.5rem; }
+        
+        .footer-credit { flex: 1 1 280px; background: linear-gradient(145deg, rgba(0, 15, 30, 0.9), #000); border-radius: 20px; border: 1px solid rgba(0,168,255,0.4); padding: 2rem; text-align: center; position: relative; overflow: hidden; transition: all 0.4s ease; box-shadow: 0 10px 30px rgba(0, 168, 255, 0.1), inset 0 0 20px rgba(0, 168, 255, 0.05); }
+        .footer-credit:hover { transform: translateY(-5px) scale(1.02); border-color: rgba(0,168,255,0.8); box-shadow: 0 15px 40px rgba(0, 168, 255, 0.3), inset 0 0 30px rgba(0, 168, 255, 0.1); }
+        .credit-title { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;}
+        .creator-name { color: #FFF; font-weight: 800; font-size: 1.6rem; margin: 0.5rem 0 1rem; letter-spacing: 1px; text-shadow: 0 0 15px rgba(255,255,255,0.4); }
+        .creator-name span { color: var(--secondary); text-shadow: 0 0 20px var(--secondary); }
+        .creator-badge { display: inline-block; background: linear-gradient(90deg, rgba(0,168,255,0.2), rgba(0,123,255,0.2)); color: var(--secondary); border: 1px solid rgba(0,168,255,0.5); padding: 0.5rem 1.5rem; border-radius: 50px; font-size: 0.8rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 1.5rem; text-transform: uppercase; box-shadow: 0 0 15px rgba(0,168,255,0.2);}
+        .credit-icon { font-size: 2.5rem; color: #FFD700; margin-bottom: 1rem; text-shadow: 0 0 20px rgba(255,215,0,0.6); animation: floatCrown 3s infinite ease-in-out; }
+        @keyframes floatCrown { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .footer-bottom { width: 100%; max-width: 1400px; margin: 3rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; position: relative; z-index: 2;}
+        .footer-bottom p { color: var(--text-muted); font-size: 0.85rem; }
+
+        .warning-popup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 100000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.4s ease; }
+        .warning-popup-overlay.show { opacity: 1; visibility: visible; }
+        .warning-popup-box { background: linear-gradient(145deg, rgba(10, 20, 30, 0.95), #000); border: 1px solid var(--secondary); border-radius: 20px; padding: 2.5rem 2rem; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 0 40px rgba(0, 168, 255, 0.3); position: relative; transform: translateY(50px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .warning-popup-overlay.show .warning-popup-box { transform: translateY(0); }
+        
+        .warning-close-btn { position: absolute; top: -15px; right: -15px; background: #111; border: 2px solid #333; color: #888; width: 45px; height: 45px; border-radius: 50%; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 3px; transition: all 0.4s ease; cursor: not-allowed; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 10;}
+        .warning-close-btn.active { background: var(--danger); border-color: var(--danger); color: #fff; cursor: pointer; box-shadow: 0 5px 20px rgba(255,0,0,0.4); animation: pulseClose 2s infinite; }
+        .warning-close-btn.active:hover { transform: scale(1.1) rotate(90deg); animation: none; }
+        @keyframes pulseClose { 0% { box-shadow: 0 0 0 0 rgba(255,68,68,0.7); } 70% { box-shadow: 0 0 0 10px rgba(255,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0); } }
+        
+        .warning-icon { font-size: 3.5rem; color: #ffbb33; margin-bottom: 1rem; animation: blinkWarning 1s infinite alternate; }
+        @keyframes blinkWarning { 0% { opacity: 0.5; transform: scale(0.95); text-shadow: 0 0 0px transparent; } 100% { opacity: 1; transform: scale(1.05); text-shadow: 0 0 25px rgba(255, 187, 51, 0.6); } }
+        .warning-popup-box h2 { color: #fff; margin-bottom: 10px; font-size: 1.6rem; }
+        .warning-popup-box p { color: #ccc; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6; }
+        .warning-actions { display: flex; flex-direction: column; gap: 12px; }
+        .warning-btn { padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; color: #fff; }
+        .warning-btn.channel-btn { background: linear-gradient(135deg, var(--secondary), var(--accent)); box-shadow: 0 5px 15px rgba(0, 168, 255, 0.3); }
+        .warning-btn.owner-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        .warning-btn:hover { transform: translateY(-3px); filter: brightness(1.2); }
+
+        @media (max-width: 1100px) { .trending-slider, .subjects-grid, .live-grid, .items-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 900px) { 
+            .trending-slider, .subjects-grid, .live-grid, .items-grid { grid-template-columns: repeat(2, 1fr) !important; }
+            .navbar { flex-direction: column; padding: 1.2rem 5%; width: 100%; gap: 10px;} 
+            .footer-content { flex-direction: column; text-align: center; align-items: center;} 
+            .footer-brand { display: flex; flex-direction: column; align-items: center;}
+            .hero h1 { font-size: 2.8rem; }
+        }
+        @media (max-width: 600px) { 
+            .hero h1 { font-size: 2.2rem; } .hero p { font-size: 1rem; } .achievement-number { font-size: 1.8rem; } .stat-number { font-size: 1.8rem; }
+            .trending-slider, .subjects-grid, .live-grid, .items-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+            .item-card, .trending-card, .subject-card, .live-card { padding: 12px; border-radius: 12px; }
+            .card-thumbnail { height: 100px; margin-bottom: 0.8rem;} .card-thumbnail i { font-size: 2.5rem; }
+            .card-title { font-size: 0.9rem; margin-bottom: 5px; line-height:1.2; } .trending-price { font-size: 1.2rem; }
+            .trending-btn, .subject-btn, .item-btn, .join-btn { padding: 6px; font-size: 0.75rem; } .order-badge { padding: 3px 8px; font-size: 0.7rem; }
+            .section-header h2 { font-size: 1.5rem; } .container { padding: 1rem 5%; }
+        }
+
+        .landing-page, .batch-page, .subject-page, .chapter-page, .global-live-page { display: none; width: 100%; }
+        .landing-page.active, .batch-page.active, .subject-page.active, .chapter-page.active, .global-live-page.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #security-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: red; display: none; z-index: 999999; justify-content: center; align-items: center; text-align: center; font-family: sans-serif;}
+    </style>
+</head>
+<body>
+
+    <div class="warning-popup-overlay" id="warningPopupOverlay">
+        <div class="warning-popup-box">
+            <button class="warning-close-btn" id="warningCloseBtn" disabled><span id="warningTimer">5</span></button>
+            <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h2>Important Notice</h2>
+            <p>⚠️ Attention: This website might get banned anytime. Please join our official channels to stay updated and never lose access to your content.</p>
+            <div class="warning-actions">
+                <button onclick="window.open('https://t.me/RangeXCoder295', '_blank')" class="warning-btn channel-btn"><i class="fab fa-telegram-plane"></i> Join Telegram Channel</button>
+                <button onclick="window.open('https://t.me/badboy_295', '_blank')" class="warning-btn owner-btn"><i class="fas fa-user-shield"></i> Contact Owner</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="security-layer"><h1>Security Violation: Inspect Element Not Allowed!</h1></div>
+    <div class="bg-glow-wrapper"></div>
+    
+    <div class="access-timer-widget"><span>🕒 <span id="timer-display">24:00:00</span></span><button class="logout-btn" onclick="promptLogout()"><i class="fas fa-sign-out-alt"></i></button></div>
+    <div class="global-live-btn" onclick="showPage('global-live')"><i class="fas fa-satellite-dish"></i> LIVE LECTURES</div>
+
+    <div class="loader-wrapper" id="loader">
+        <div class="loader-content">
+            <div class="loader-logo"><span class="loader-r-badge">R</span>angeXCoder</div>
+            <div class="loader-progress-container"><div class="loader-progress-bar" id="loader-progress"></div></div>
+            <p id="loader-text" style="color:var(--text-dim); font-size:0.75rem; letter-spacing:3px; font-weight:600; text-transform: uppercase;">Initializing Database...</p>
+        </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <nav class="navbar" id="navbar">
+        <div class="logo">
+            <a href="/">
+                <img src="../logo.png" alt="Logo" style="width: 35px; height: 35px; margin-right: 10px; border-radius: 50%; box-shadow: 0 0 10px var(--secondary); object-fit: contain;">
+                <span style="color:var(--secondary); text-shadow:0 0 15px var(--secondary);">R</span><span style="color:#FFF;">angeXCoder<span class="x-nt-badge" style="display:none; color:var(--secondary); font-size:1.2rem; text-shadow:none;"> X NT</span></span>
+            </a>
+        </div>
+        <div class="nav-links">
+            <a onclick="showPage('landing')" id="nav-home">Home</a><a id="nav-subject" style="display:none">Subject Area</a>
+            <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme"><i class="fas fa-moon" id="theme-icon"></i></div>
+            <div class="theme-toggle" onclick="openThemeModal()" title="Theme Customizer" style="margin-left: 10px; cursor: pointer;"><i class="fas fa-palette"></i></div>
+        </div>
+    </nav>
+
+    <!-- Theme Settings Modal -->
+    <div class="warning-popup-overlay" id="themeModalOverlay" style="z-index: 100001;">
+        <div class="warning-popup-box" style="border-color: var(--secondary); max-width: 450px; background: var(--card-bg); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <button class="warning-close-btn active" onclick="closeThemeModal()" style="cursor: pointer; background: var(--danger); border-color: var(--danger); color: #fff;"><i class="fas fa-times"></i></button>
+            <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 1rem;"><i class="fas fa-palette"></i></div>
+            <h2 style="color: var(--text-light); margin-bottom: 10px;">Theme Customizer</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; text-align: center;">Select your favorite color accent to apply across all pages</p>
+            <div class="theme-selector-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; width: 100%;">
+                <button class="theme-option-btn" data-theme="theme-classic" style="background: #5c5be5; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Classic Purple"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-teal" style="background: #00f2fe; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Neon Teal"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-orange" style="background: #ff7b00; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Sunset Orange"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-bluepurple" style="background: #8a2be2; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Blue Purple Blur"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-sakura" style="background: #ff69b4; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Sakura Dream"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-emerald" style="background: #00ff66; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Emerald Breeze"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-forest" style="background: #00bfff; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Forest Glow"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-crimson" style="background: #ff2a2a; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Crimson Shadow"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-gold" style="background: #ffd700; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Midnight Gold"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-aurora" style="background: #39ff14; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Aurora Borealis"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-cyberpunk" style="background: #ff00ff; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Cyberpunk Neon"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+                <button class="theme-option-btn" data-theme="theme-silver" style="background: #cbd5e1; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Minimalist Silver"><i class="fas fa-check" style="font-size: 12px; color: white; display: none;"></i></button>
+            </div>
+            <button onclick="closeThemeModal()" class="warning-btn channel-btn" style="width: 100%; border: none; font-family: inherit; font-size: 0.95rem; font-weight: bold; background: var(--secondary);"><i class="fas fa-check-circle"></i> Apply Settings</button>
+        </div>
+    </div>
+    
+    <div class="global-live-page" id="global-live-page">
+        <div class="container">
+            <button class="back-button" onclick="goBack()"><i class="fas fa-arrow-left"></i> Back</button>
+            <div class="subject-header" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                <h1 style="color: #FF0000; font-size:2.5rem; text-shadow: 0 0 20px rgba(255,0,0,0.4);"><i class="fas fa-broadcast-tower" style="animation: liveFlicker 1s infinite alternate;"></i> Global Live Lectures</h1>
+            </div>
+            <div class="main-tab-buttons" style="border-bottom: 1px solid rgba(0,168,255,0.3); padding-bottom: 10px;">
+                <button class="main-tab-btn active" id="btn-glive-nt" onclick="switchGlobalLiveTab('nt')">🚀 Next Topper</button>
+                <button class="main-tab-btn" id="btn-glive-mj" onclick="switchGlobalLiveTab('mj')">🎯 Mission Jeet</button>
+            </div>
+            <div id="glive-nt-tab" class="tab-content active" style="margin-top: 20px;"><div class="items-grid" id="glive-nt-grid"></div></div>
+            <div id="glive-mj-tab" class="tab-content" style="margin-top: 20px; display: none;"><div class="items-grid" id="glive-mj-grid"></div></div>
+        </div>
+    </div>
+
+    <div class="landing-page active" id="landing-page">
+        <section class="hero">
+            <div class="hero-logo-icon"><i class="fas fa-graduation-cap"></i></div>
+            <h1>Welcome to <span>RangeXCoder</span></h1>
+            <p>Your Ultimate Live Learning Destination. Empowered by Smart Sync Technology for 0-Delay Content Delivery.</p>
+        </section>
+        <div class="container">
+            <div class="achievement-showcase fade-in-up">
+                <div class="achievement-item"><span class="achievement-number">98%</span><span>Success Rate</span></div>
+                <div class="achievement-item"><span class="achievement-number">150+</span><span>Expert Teachers</span></div>
+                <div class="achievement-item"><span class="achievement-number">4.9/5</span><span>App Rating</span></div>
+                <div class="achievement-item"><span class="achievement-number">24/7</span><span>Support</span></div>
+            </div>
+            <div class="hero-stats fade-in-up" style="animation-delay: 0.2s;">
+                <div class="stat-item"><span class="stat-number">50K+</span><span>Active Learners</span></div>
+                <div class="stat-item"><span class="stat-number">200+</span><span>Expert Mentors</span></div>
+                <div class="stat-item"><span class="stat-number">1000+</span><span>Interactive Courses</span></div>
+            </div>
+            <div class="modern-features fade-in-up" style="animation-delay: 0.4s;">
+                <div class="feature-tile"><i class="fas fa-robot"></i><h3>AI Assistant</h3><p>24/7 guidance</p></div>
+                <div class="feature-tile"><i class="fas fa-vr-cardboard"></i><h3>VR Classrooms</h3><p>Immersive learning</p></div>
+                <div class="feature-tile"><i class="fas fa-code-branch"></i><h3>Live Projects</h3><p>Real experience</p></div>
+                <div class="feature-tile"><i class="fas fa-trophy"></i><h3>Gamified</h3><p>Earn badges</p></div>
+            </div>
+            <div class="section-header"><h2><i class="fas fa-fire"></i> Available Batches</h2></div>
+            <div class="trending-slider" id="trending-batches"></div>
+        </div>
+    </div>
+
+    <div class="batch-page" id="batch-page">
+        <div class="container">
+            <button class="back-button" onclick="goBack()"><i class="fas fa-arrow-left"></i> Back</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; margin-top: 1rem;">
+                <h1 id="batch-title" style="margin-bottom:0; font-size: 2.4rem; color:var(--text-light)">Batch Name</h1>
+            </div>
+            <div class="main-tab-buttons" id="batch-tab-buttons">
+                <button class="main-tab-btn active" id="btn-batch-classes" onclick="switchBatchTab('classes')" style="display:inline-block;">Classes & Folders</button>
+                <button class="main-tab-btn" id="btn-batch-details" onclick="switchBatchTab('details')" style="display:none;">Course Details</button>
+            </div>
+            <div id="batch-classes-tab">
+                <div class="live-lectures-section" id="live-section-container" style="display:none;">
+                    <div class="section-header"><h2><i class="fas fa-circle-play"></i> Live Lectures</h2></div>
+                    <div class="live-grid" id="live-lectures"></div>
+                </div>
+                <div class="subjects-section">
+                    <div class="section-header"><h2><i class="fas fa-folder-open"></i> All Subjects</h2></div>
+                    <div class="subjects-grid" id="subjects-grid"></div>
+                </div>
+            </div>
+            <div id="batch-details-tab" style="display: none;"><div id="batch-full-description" class="batch-desc-box"></div></div>
+        </div>
+    </div>
+    
+    <div class="subject-page" id="subject-page">
+        <div class="container">
+            <button class="back-button" onclick="goBack()"><i class="fas fa-arrow-left"></i> Back</button>
+            <div class="subject-header" style="flex-wrap: wrap; margin-top: 1rem; margin-bottom: 0.5rem;"><h1 id="subject-title" style="color: var(--text-light); display: inline-block; font-size:2.2rem;">Subject Explorer</h1></div>
+            <div class="section-header" style="margin-top: 0.5rem;"><h2 id="dynamic-folder-heading"><i class="fas fa-folder-tree"></i> Folders</h2></div>
+            <div class="subjects-grid" id="subject-chapters-grid"></div>
+        </div>
+    </div>
+    
+    <div class="chapter-page" id="chapter-page">
+        <div class="container">
+            <button class="back-button" onclick="goBack()"><i class="fas fa-arrow-left"></i> Back</button>
+            <div class="subject-header" style="flex-wrap: wrap; margin-top: 1rem; margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <h1 id="chapter-title" style="color: var(--secondary); display: inline-block; font-size:2rem; margin:0;">Folder Content</h1>
+                <button class="item-btn" onclick="toggleOrder()" style="width:auto; padding:0.5rem 1rem; font-size:0.85rem; border-color:var(--secondary); color:var(--secondary); background:transparent;"><i class="fas fa-sort"></i> <span id="flip-btn-text">Order: First to Last</span></button>
+            </div>
+            <div class="main-tab-buttons" id="chapter-tab-buttons"></div>
+            <div id="chapter-dynamic-contents"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <a href="#" onclick="showPage('landing')">
+                        <img src="https://ui-avatars.com/api/?name=R&background=00A8FF&color=fff&rounded=true&bold=true&size=50" alt="Logo" style="width: 35px; height: 35px; margin-right: 10px; border-radius: 50%; box-shadow: 0 0 10px var(--secondary);">
+                        <span style="color:var(--secondary); text-shadow:0 0 15px var(--secondary);">R</span><span style="color:#FFF;">angeXCoder<span class="x-nt-badge" style="display:none; color:var(--secondary); font-size:1.2rem; text-shadow:none;"> X NT</span></span>
+                    </a>
+                </div>
+                <p class="footer-description">Empowering the next generation of tech leaders with future-ready skills, innovative learning methods, and smart auto-sync technology.</p>
+            </div>
+            <div class="footer-credit">
+                <div class="creator-badge">OWNER</div>
+                <div class="credit-icon"><i class="fas fa-crown"></i></div>
+                <div class="credit-title">Platform Built By</div>
+                <div class="creator-name" style="color: #FFF; text-shadow: 0 0 15px rgba(255,255,255,0.4);">Amber Kasaudhan</div>
+            </div>
+        </div>
+        <div class="footer-bottom"><p>&copy; 2024 <span style="color:var(--text-light); font-weight:600;">RangeXCoder</span>. All rights reserved.</p></div>
+    </footer>
+
+    <script>
+        const CACHE_KEY = 'rangexcoder_data';
+        window.isOrderFlipped = false;
+        window.isNaturalSortEnabled = false; 
+
+        window.toggleOrder = function() {
+            window.isOrderFlipped = !window.isOrderFlipped;
+            const btnText = document.getElementById('flip-btn-text');
+            if(btnText) btnText.innerText = window.isOrderFlipped ? 'Order: Last to First' : 'Order: First to Last';
+            renderChapterPage();
+        };
+
+        const scrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+        }, { threshold: 0.1 });
+
+        const applyScrollObserver = (selector) => {
+            setTimeout(() => {
+                document.querySelectorAll(selector).forEach(el => {
+                    if(!el.classList.contains('animate-on-scroll')) {
+                        el.classList.add('animate-on-scroll');
+                        scrollObserver.observe(el);
+                    }
+                });
+            }, 50);
+        };
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCN2f4g4lfEfpj8WedtoKH55zxB_UwS7sI",
+            authDomain: "rangexcoder-57027.firebaseapp.com",
+            databaseURL: "https://rangexcoder-57027-default-rtdb.firebaseio.com",
+            projectId: "rangexcoder-57027",
+            storageBucket: "rangexcoder-57027.firebasestorage.app",
+            messagingSenderId: "420422677028",
+            appId: "1:420422677028:web:5c98e826d2e78c116e5eb1"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        const MEDIA_PLAYER_URL = 'https://rangexcoder-mediaplayer.netlify.app/?url=';
+
+        let currentSubjectId = null, currentBatchId = null, currentFolderId = null, currentChapterName = null;
+        let dataCache = { batches: {}, subjects: {}, sections: {}, contents: {}, liveLectures: {}, globalLiveLectures: { nexttoppers: [], missionjeet: [] } };
+        let accessTimerInterval = null;
+
+        function checkAccess() {
+            const dataStr = localStorage.getItem('learnox_access_token');
+            if(!dataStr) return false;
+            try {
+                const sessionData = JSON.parse(dataStr);
+                const expiresAt = sessionData.expiresAt || (sessionData.timestamp + 24 * 60 * 60 * 1000);
+                return expiresAt > Date.now();
+            } catch(e) {
+                return false;
+            }
+        }
+
+        window.verifyAndWatch = function(url, isVid, entityId, courseId, btnElem, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            if (isVid) {
+                if (!checkAccess()) {
+                    showToast('Access key required for videos. Redirecting to verify...', 'info');
+                    const currentPath = window.location.pathname + window.location.search;
+                    localStorage.setItem('auth_target_destination', currentPath);
+                    setTimeout(() => {
+                        window.location.href = `/generate?dest=${encodeURIComponent(currentPath)}`;
+                    }, 1200);
+                    return;
+                }
+                if (url && url.length > 5 && url !== ' ' && !url.includes('undefined')) {
+                    window.open(url, '_blank');
+                } else if (entityId && courseId) {
+                    openDynamicContent(entityId, courseId, isVid, btnElem);
+                }
+            } else {
+                if (url && url.length > 5 && url !== ' ' && !url.includes('undefined')) {
+                    window.open(url, '_blank');
+                } else if (entityId && courseId) {
+                    openDynamicContent(entityId, courseId, isVid, btnElem);
+                }
+            }
+        };
+
+        function startAccessTimer() {
+            clearInterval(accessTimerInterval);
+            const dataStr = localStorage.getItem('learnox_access_token');
+            if(!dataStr) {
+                const displayEl = document.getElementById('timer-display');
+                if(displayEl) displayEl.textContent = "Expired";
+                return;
+            }
+            try {
+                let sessionData = JSON.parse(dataStr);
+                const ACCESS_DURATION = 24 * 60 * 60 * 1000; 
+                if (!sessionData.expiresAt) {
+                    sessionData.expiresAt = (sessionData.timestamp || Date.now()) + ACCESS_DURATION;
+                    localStorage.setItem('learnox_access_token', JSON.stringify(sessionData));
+                }
+                accessTimerInterval = setInterval(() => {
+                    const diff = sessionData.expiresAt - Date.now();
+                    const displayEl = document.getElementById('timer-display');
+                    if (diff <= 0) {
+                        if(displayEl) displayEl.textContent = "Expired";
+                        return;
+                    }
+                    const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+                    if(displayEl) displayEl.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                }, 1000);
+            } catch(e) {
+                const displayEl = document.getElementById('timer-display');
+                if(displayEl) displayEl.textContent = "Expired";
+            }
+        }
+        
+        function logoutAccess() { 
+            localStorage.removeItem('learnox_access_token'); 
+            startAccessTimer();
+        }
+        function promptLogout() { if(confirm("Are you sure you want to log out?")) { logoutAccess(); } }
+
+        function showToast(msg, type) { 
+            const t = document.createElement('div'); t.className = 'toast ' + type; t.innerHTML = `<div class="toast-message">${msg}</div>`; 
+            document.getElementById('toastContainer').appendChild(t); setTimeout(() => t.remove(), 3000); 
+        }
+
+        db.ref('settings/showNumbering').on('value', snap => {
+            if(snap.val() === false) document.body.classList.add('hide-numbers'); else document.body.classList.remove('hide-numbers');
+        });
+        
+        db.ref('settings/naturalSorting').on('value', snap => { window.isNaturalSortEnabled = snap.val() === true; debouncedRender(); });
+
+        db.ref('settings/showXNT').on('value', snap => {
+            document.querySelectorAll('.x-nt-badge').forEach(el => { el.style.display = snap.val() === true ? 'inline' : 'none'; });
+        });
+
+        let renderTimeout;
+        function debouncedRender() {
+            clearTimeout(renderTimeout);
+            renderTimeout = setTimeout(() => {
+                renderTrendingBatches();
+                if(currentBatchId && !currentSubjectId && !currentFolderId) renderBatchPage();
+                if(currentSubjectId && !currentFolderId) renderSubjectPage(currentSubjectId); 
+                if(currentFolderId) renderChapterPage();
+            }, 300);
+        }
+
+        window.addEventListener('load', async function() {
+            startAccessTimer();
+            setTimeout(() => {
+                const warningOverlay = document.getElementById('warningPopupOverlay'); const closeBtn = document.getElementById('warningCloseBtn'); const timerSpan = document.getElementById('warningTimer');
+                if(warningOverlay) warningOverlay.classList.add('show');
+                let timeLeft = 5;
+                const countdown = setInterval(() => {
+                    timeLeft--; if(timeLeft > 0) { if(timerSpan) timerSpan.textContent = timeLeft; } else {
+                        clearInterval(countdown); if(closeBtn) { closeBtn.innerHTML = '<i class="fas fa-times"></i>'; closeBtn.classList.add('active'); closeBtn.removeAttribute('disabled'); closeBtn.onclick = () => warningOverlay.classList.remove('show'); }
+                    }
+                }, 1000);
+            }, 500); 
+
+            let p = 0;
+            const loaderInt = setInterval(()=>{ p += 5; const lp = document.getElementById('loader-progress'); if(lp) lp.style.width = p+'%'; if(p >= 100){ clearInterval(loaderInt); const ld = document.getElementById('loader'); if(ld) ld.classList.add('hidden'); } }, 50);
+
+            db.ref('batches').on('value', snap => { dataCache.batches = snap.val() || {}; debouncedRender(); });
+            db.ref('subjects').on('value', snap => { dataCache.subjects = snap.val() || {}; debouncedRender(); });
+            db.ref('sections').on('value', snap => { dataCache.sections = snap.val() || {}; debouncedRender(); });
+            db.ref('contents').on('value', snap => { dataCache.contents = snap.val() || {}; debouncedRender(); });
+            db.ref('liveLectures').on('value', snap => { const res = {}; Object.entries(snap.val() || {}).forEach(([k, v]) => { if(!res[v.batchId]) res[v.batchId]={}; res[v.batchId][k]=v; }); dataCache.liveLectures = res; renderLiveLectures(); });
+            db.ref('globalLiveLectures').on('value', snap => { dataCache.globalLiveLectures = snap.val() || { nexttoppers: [], missionjeet: [] }; if (document.getElementById('global-live-page').classList.contains('active')) { renderGlobalLivePage(); } });
+
+            if (!history.state || !history.state.page) { try { history.replaceState({ page: 'landing', id: null }, '', '#landing'); } catch(e) {} }
+        });
+
+        function getPlayableLink(url) {
+            if(!url) return '#'; if(url.includes('rangexcoder-mediaplayer')) return url; if(url.toLowerCase().includes('.m3u8') || url.toLowerCase().includes('.mp4')) return MEDIA_PLAYER_URL + encodeURIComponent(url); if(url.includes('youtube.com') || url.includes('youtu.be')) return url; return url;
+        }
+
+        window.openDynamicContent = async function(entityId, batchId, isVideo, btnElem) {
+            showToast('Link is not synchronized or hidden. Please wait for backend update.', 'error');
+        }
+
+        function renderSubjectPage(folderId = null) {
+            if(!folderId && !currentSubjectId) return; let targetId = folderId || currentSubjectId; let titleText = 'Explorer';
+            if(dataCache.subjects[targetId]) { titleText = dataCache.subjects[targetId].name || 'Subject'; } else if (dataCache.sections[targetId]) { titleText = dataCache.sections[targetId].name || 'Folder'; }
+            const titleEl = document.getElementById('subject-title'); if(titleEl) titleEl.textContent = titleText;
+            const navSubj = document.getElementById('nav-subject'); if(navSubj) { navSubj.textContent = titleText; navSubj.style.display = 'inline'; }
+            const gridContainer = document.getElementById('subject-chapters-grid'); if(!gridContainer) return; gridContainer.innerHTML = '';
+            const childFolders = Object.entries(dataCache.sections || {}).filter(([k,v]) => String(v.parentFolderId) === String(targetId) && !v.isHidden).sort((a,b) => {
+                if (window.isNaturalSortEnabled) {
+                    let cmp = String(a[1].name||'').localeCompare(String(b[1].name||''), undefined, {numeric: true}); if (cmp !== 0) return cmp; return (a[1].order || 0) - (b[1].order || 0);
+                } else { return (a[1].order || 0) - (b[1].order || 0); }
+            });
+            if (window.isOrderFlipped) childFolders.reverse(); if(childFolders.length === 0) { renderChapterPage(targetId, titleText); return; }
+
+            gridContainer.innerHTML = childFolders.map(([secId, chap], idx) => {
+                let icon = chap.name.toLowerCase().includes('mock') || chap.name.toLowerCase().includes('test') ? 'fa-file-signature' : 'fa-folder-open'; let badgeNum = window.isOrderFlipped ? (childFolders.length - idx) : (idx + 1);
+                return `<div class="subject-card" style="text-align:center; padding-top:2.5rem; cursor:pointer;" onclick="showPage('subject', '${secId}')">
+                    <div class="order-badge">#${badgeNum}</div><i class="fas ${icon}" style="font-size:3.5rem; color:var(--secondary); margin-bottom:1.5rem; text-shadow: 0 0 15px rgba(0,168,255,0.3);"></i><h3 style="margin-bottom:15px; font-size:1.1rem; line-height:1.4;">${chap.name}</h3><button class="subject-btn" style="margin-top:auto;">Open Folder</button>
+                </div>`;
+            }).join('');
+            document.querySelectorAll('.landing-page, .batch-page, .subject-page, .chapter-page, .global-live-page').forEach(p=>p.classList.remove('active')); document.getElementById('subject-page').classList.add('active'); applyScrollObserver('.subject-card');
+        }
+
+        function renderChapterPage(folderId = null, titleOverride = null) {
+            let activeFolderId = folderId || currentFolderId; if(!activeFolderId) return;
+            const folderObj = dataCache.sections[activeFolderId] || dataCache.subjects[activeFolderId] || {}; const displayTitle = titleOverride || folderObj.name || currentChapterName || 'Content Details';
+            const titleEl = document.getElementById('chapter-title'); if(titleEl) titleEl.textContent = displayTitle;
+            const tabsContainer = document.getElementById('chapter-tab-buttons'); let contentContainer = document.getElementById('chapter-dynamic-contents'); if(!tabsContainer || !contentContainer) return;
+            tabsContainer.innerHTML = ''; contentContainer.innerHTML = ''; let tabIndex = 0;
+
+            function addTab(id, name, items, defaultIcon, defaultColor, thumbType = 'default') {
+                if(!items || items.length === 0) return; let isActive = tabIndex === 0 ? 'active' : '';
+                tabsContainer.innerHTML += `<button class="main-tab-btn ${isActive}" id="btn-chapsec-${id}" onclick="switchChapterTab('${id}')">${name}</button>`;
+                let itemsHtml = items.map((item, i) => {
+                    let finalUrl = item.link || ''; let isVid = item.isVideo || finalUrl.includes('mediaplayer') || finalUrl.includes('youtube');
+                    let icon = isVid ? 'fa-play-circle' : (name.includes('DPP') ? 'fa-laptop-code' : 'fa-file-pdf'); let btnText = isVid ? 'Watch Video' : (name.includes('DPP') ? 'Open DPP' : 'Open PDF'); let color = isVid ? 'var(--accent)' : (name.includes('DPP') ? '#33b5e5' : '#ff4444');
+                    let thumbHtml = ''; if (item.thumbnail && item.thumbnail.length > 5 && item.thumbnail !== 'null') { thumbHtml = `<img src="${item.thumbnail}" style="width:100%; height:130px; object-fit:contain; border-radius:12px; margin-bottom:10px; background:#000;">`; } else {
+                        let fallbackIcon = `<i class="fas ${icon}" style="font-size:3.5rem; color:${color}; text-shadow: 0 0 15px ${color}80;"></i>`; thumbHtml = `<div style="width:100%; height:130px; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); border-radius:12px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.05);">${fallbackIcon}</div>`;
+                    }
+                    const actionClick = `verifyAndWatch('${finalUrl}', ${isVid}, '${item.entityId}', '${item.apiCourseId}', this, event)`;
+                    let displayBadge = window.isOrderFlipped ? (items.length - i) : (i + 1);
+                    return `<div class="item-card" style="padding-top:1.5rem;">
+                        <div class="order-badge">#${displayBadge}</div><div style="flex-grow:1; display:flex; flex-direction:column; align-items:center;">${thumbHtml}<h4 style="margin-bottom:15px; font-size:1.1rem; text-align:center; line-height: 1.4;">${item.title || 'Untitled'}</h4></div><button onclick="${actionClick}" class="item-btn" style="border-color:${color}; color:${color}; margin-top:auto;"><i class="fas ${icon}"></i> ${btnText}</button>
+                    </div>`;
+                }).join('');
+                contentContainer.innerHTML += `<div class="tab-content ${isActive}" id="chapsec-${id}"><div class="items-grid">${itemsHtml}</div></div>`; tabIndex++;
+            }
+
+            const folderContents = Object.entries(dataCache.contents || {}).filter(([k,v]) => String(v.sectionId) === String(activeFolderId)).map(x=>x[1]);
+            let videos = folderContents.filter(x => x.isVideo); let dpps = folderContents.filter(x => !x.isVideo && (x.title.toLowerCase().includes('dpp') || x.title.toLowerCase().includes('test') || x.title.toLowerCase().includes('practice'))); let pdfs = folderContents.filter(x => !x.isVideo && !dpps.includes(x));
+            let groups = [{ id: 'vid', name: 'Videos', items: videos, icon: 'fa-play-circle', type: 'video' }, { id: 'pdf', name: 'PDFs & Notes', items: pdfs, icon: 'fa-file-pdf', type: 'pdf' }, { id: 'dpp', name: 'DPPs', items: dpps, icon: 'fa-file-alt', type: 'dpp' }];
+
+            groups.forEach(group => {
+                if(group.items.length > 0) {
+                    group.items.sort((a,b) => {
+                        let diffStrict = (a.order||0) - (b.order||0); if(window.isNaturalSortEnabled) { let cmpNat = String(a.title||'').localeCompare(String(b.title||''), undefined, {numeric: true}); if(cmpNat !== 0) return window.isOrderFlipped ? -cmpNat : cmpNat; } return window.isOrderFlipped ? -diffStrict : diffStrict; 
+                    }); addTab(group.id, group.name, group.items, group.icon, 'var(--secondary)', group.type);
+                }
+            });
+            if(tabIndex === 0) contentContainer.innerHTML = '<p style="text-align:center; width:100%; color:var(--text-muted); padding:2rem;">No content found.</p>';
+            document.querySelectorAll('.landing-page, .batch-page, .subject-page, .chapter-page, .global-live-page').forEach(p=>p.classList.remove('active')); document.getElementById('chapter-page').classList.add('active'); applyScrollObserver('.item-card');
+        }
+
+        window.switchChapterTab = function(secId) {
+            document.querySelectorAll('#chapter-tab-buttons .main-tab-btn').forEach(btn => btn.classList.remove('active')); document.querySelectorAll('#chapter-dynamic-contents .tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`btn-chapsec-${secId}`).classList.add('active'); document.getElementById(`chapsec-${secId}`).classList.add('active');
+        }
+
+        function renderTrendingBatches() {
+            const container = document.getElementById('trending-batches'); if (!container) return;
+            const batches = Object.entries(dataCache.batches).sort((a,b) => {
+                if (window.isNaturalSortEnabled) { let cmp = String(a[1].name||'').localeCompare(String(b[1].name||''), undefined, {numeric: true}); if (cmp !== 0) return cmp; } return (a[1].order||0) - (b[1].order||0);
+            }); 
+            container.innerHTML = batches.length ? batches.map(([id, b], idx) => {
+                let priceVal = b.price || 'Free', priceText = priceVal.toString().toLowerCase().includes('free') ? 'Free' : `&#8377; ${priceVal.toString().replace(/[^0-9.]/g, '')}`;
+                let isMissionJeet = (b.apiSource || '').includes('missionjeet'); let srcBadge = isMissionJeet ? '<span style="background:#00C851; color:#000; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">MJ</span>' : '<span style="background:#00A8FF; color:#fff; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">NT</span>';
+                return `<div class="trending-card">
+                    <div class="order-badge">#${idx+1}</div><div style="position:absolute; top:15px; right:15px; z-index:20;">${srcBadge}</div><div class="card-thumbnail">${b.thumbnail ? `<img src="${b.thumbnail}">` : `<i class="fas fa-graduation-cap"></i>`}</div>
+                    <div class="card-content">
+                        <div class="badges-wrapper"><span class="trending-badge"><i class="fas fa-users"></i> ${b.students || '2500+'}</span><span class="session-badge"><i class="fas fa-calendar-alt"></i> ${b.duration || '2026-2027'}</span></div><h3 class="card-title">${b.name || 'Batch'}</h3><div class="trending-price">${priceText}</div><button class="trending-btn" onclick="showPage('batch', '${id}')">Open Batch</button>
+                    </div>
+                </div>`;
+            }).join('') : '<p style="text-align:center; width:100%;">No batches available.</p>';
+            applyScrollObserver('.trending-card');
+        }
+
+        function switchBatchTab(tab) {
+            document.getElementById('batch-classes-tab').style.display = tab === 'classes' ? 'block' : 'none'; document.getElementById('batch-details-tab').style.display = tab === 'details' ? 'block' : 'none';
+            document.getElementById('btn-batch-classes').classList.toggle('active', tab === 'classes'); document.getElementById('btn-batch-details').classList.toggle('active', tab === 'details');
+        }
+
+        function renderBatchPage() {
+            if(!currentBatchId) return; const batch = dataCache.batches[currentBatchId] || {};
+            document.getElementById('batch-title').textContent = batch.name || 'Batch Details'; switchBatchTab('classes');
+            const descContainer = document.getElementById('batch-full-description'), detailsTabBtn = document.getElementById('btn-batch-details');
+            if(descContainer) { const finalDesc = batch.fullDescription || batch.description || ''; if(finalDesc.trim() !== '') { descContainer.innerHTML = finalDesc; detailsTabBtn.style.display = 'inline-block'; } else { descContainer.innerHTML = '<p>No description available.</p>'; detailsTabBtn.style.display = 'inline-block'; } }
+            const subjects = Object.entries(dataCache.subjects).filter(([_, s]) => String(s.batchId) === String(currentBatchId)).sort((a,b) => {
+                if (window.isNaturalSortEnabled) { let cmp = String(a[1].name||'').localeCompare(String(b[1].name||''), undefined, {numeric: true}); if (cmp !== 0) return cmp; } return (a[1].order||0) - (b[1].order||0);
+            });
+            document.getElementById('subjects-grid').innerHTML = subjects.length ? subjects.map(([id, s], idx) => `<div class="subject-card" style="text-align:center; padding-top:2.5rem; cursor:pointer;" onclick="showPage('subject', '${id}')">
+                <div class="order-badge">#${idx+1}</div><i class="fas ${s.icon || 'fa-folder-open'}" style="font-size:3.5rem; color:var(--secondary); margin-bottom:1.5rem; text-shadow: 0 0 15px rgba(0,168,255,0.3);"></i><h3 style="margin-bottom:15px; font-size:1.2rem;">${s.name || 'Subject'}</h3><button class="subject-btn" style="margin-top:auto;">Open Subject</button></div>`).join('') : '<p style="text-align:center; width:100%;">No subjects</p>';
+            document.querySelectorAll('.landing-page, .batch-page, .subject-page, .chapter-page, .global-live-page').forEach(p=>p.classList.remove('active')); document.getElementById('batch-page').classList.add('active'); applyScrollObserver('.subject-card');
+        }
+
+        function renderLiveLectures() {
+            const container = document.getElementById('live-lectures'), sectionContainer = document.getElementById('live-section-container'); if (!container) return;
+            const lives = dataCache.liveLectures[currentBatchId] || {};
+            if(Object.keys(lives).length === 0) { sectionContainer.style.display = 'none'; } else {
+                sectionContainer.style.display = 'block'; const now = new Date(); const currentMins = now.getHours() * 60 + now.getMinutes();
+                container.innerHTML = Object.values(lives).map(l => {
+                    let isLive = false, status = 'COMPLETED'; if(l.status === 'completed') { status = 'COMPLETED'; } else { const [h, m] = (l.startTime || '00:00').split(':').map(Number); if(currentMins >= (h * 60 + (m || 0))) { isLive = true; status = 'LIVE NOW'; } else { isLive = false; status = 'UPCOMING'; } }
+                    const finalLink = getPlayableLink(l.link), displayTime = formatTime12(l.startTime);
+                    return `<div class="live-card"><div class="live-header"><span class="live-badge" style="background:${isLive ? '#00C851' : 'var(--secondary)'}">${status}</span></div><h3 class="live-subject" style="font-size:1.3rem;">${l.title || 'Lecture'}</h3><div class="live-details"><div class="detail-item"><i class="fas fa-clock"></i> ${displayTime}</div><div class="detail-item"><i class="fas fa-hourglass-half"></i> ${l.duration || '45 min'}</div></div><a href="javascript:void(0)" onclick="verifyAndWatch('${finalLink}', true, null, null, this, event)" class="join-btn ${!isLive ? 'disabled' : ''}" ${!isLive ? 'disabled style="pointer-events:none;"' : ''}>${isLive ? 'Join Live' : 'Starts ' + displayTime}</a></div>`;
+                }).join(''); applyScrollObserver('.live-card');
+            }
+        }
+
+        window.switchGlobalLiveTab = function(tab) {
+            document.getElementById('btn-glive-nt').classList.remove('active'); document.getElementById('btn-glive-mj').classList.remove('active');
+            document.getElementById('glive-nt-tab').style.display = 'none'; document.getElementById('glive-mj-tab').style.display = 'none';
+            document.getElementById('btn-glive-' + tab).classList.add('active'); document.getElementById('glive-' + tab + '-tab').style.display = 'block';
+        };
+
+        function renderGlobalLivePage() {
+            const ntGrid = document.getElementById('glive-nt-grid'); const mjGrid = document.getElementById('glive-mj-grid');
+            function buildCards(dataArray) {
+                if (dataArray && typeof dataArray === 'object' && !Array.isArray(dataArray)) { dataArray = Object.values(dataArray); }
+                if (!dataArray || dataArray.length === 0) return '<p style="text-align:center; width:100%; grid-column:1/-1; color:var(--text-muted); padding:2rem;">No Live Lectures Currently Active.</p>';
+                return dataArray.map((item, idx) => {
+                    let finalUrl = item.file_url || item.url || ''; let courseName = item.course && item.course.title ? item.course.title : 'General Course'; let thumb = item.thumbnail || '<div style="width:100%; height:100%; background:#111; display:flex; align-items:center; justify-content:center;"><i class="fas fa-video" style="font-size:3rem; color:red;"></i></div>';
+                    if(thumb && !thumb.includes('<div')) { thumb = `<img src="${thumb}" style="width:100%; height:140px; object-fit:cover; border-radius:12px; margin-bottom:10px;">`; }
+                    let btnHtml = ''; if (!finalUrl || finalUrl.trim() === '') { btnHtml = `<button class="item-btn" style="border-color:#555; background:rgba(255,255,255,0.05); color:#888; margin-top:auto; cursor:not-allowed;" disabled><i class="fas fa-spinner fa-spin"></i> Link Updating Soon...</button>`; } else {
+                        let playLink = finalUrl; if (!playLink.includes('http') && playLink.length >= 11 && playLink.length <= 13) playLink = 'https://www.youtube.com/watch?v=' + playLink; else if(playLink.includes('.m3u8') || playLink.includes('.mp4')) playLink = MEDIA_PLAYER_URL + encodeURIComponent(playLink);
+                        btnHtml = `<button class="item-btn" style="border-color:#00C851; background:rgba(0,200,81,0.1); color:#00C851; margin-top:auto; box-shadow: 0 0 10px rgba(0,200,81,0.2);" onclick="verifyAndWatch('${playLink}', true, null, null, this, event)"><i class="fas fa-play-circle"></i> Join Live Now</button>`;
+                    }
+                    return `<div class="item-card" style="padding-top:1.5rem; position:relative; border: 1px solid rgba(255,0,0,0.3); box-shadow: 0 5px 20px rgba(255,0,0,0.1);">
+                        <div style="position:absolute; top:-10px; left:15px; background:#FF0000; color:#fff; padding:3px 12px; border-radius:12px; font-size:0.75rem; font-weight:800; animation: liveFlicker 1s infinite alternate; letter-spacing:1px; z-index:10;"><i class="fas fa-circle"></i> LIVE</div><div style="flex-grow:1; display:flex; flex-direction:column; align-items:center;">${thumb}<span style="color:var(--secondary); font-size:0.85rem; font-weight:bold; margin-bottom:5px; background:rgba(0,168,255,0.1); padding:2px 10px; border-radius:10px;">${courseName}</span><h4 style="margin-bottom:15px; font-size:1.1rem; text-align:center; line-height: 1.4; color:var(--text-light);">${item.title || 'Untitled Lecture'}</h4></div>${btnHtml}
+                    </div>`;
+                }).join('');
+            }
+            ntGrid.innerHTML = buildCards(dataCache.globalLiveLectures.nexttoppers); mjGrid.innerHTML = buildCards(dataCache.globalLiveLectures.missionjeet); applyScrollObserver('.item-card');
+        }
+
+        function formatTime12(time24) { if (!time24) return '00:00'; let [h, m] = time24.split(':'); let ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${m} ${ampm}`; }
+
+        function showPage(page, id = null, pushToHistory = true) {
+            window.scrollTo({ top: 0, behavior: 'smooth' }); if (pushToHistory) { history.pushState({ page, id }, '', `#${page}${id ? ('?id=' + id) : ''}`); }
+            const navSubj = document.getElementById('nav-subject'); if(page === 'subject' || page === 'chapter') navSubj.style.display = 'inline'; else navSubj.style.display = 'none';
+            try {
+                if (page==='batch') { currentBatchId = id; currentSubjectId = null; currentFolderId = null; renderBatchPage(); } 
+                else if (page==='subject') { 
+                    if(dataCache.subjects[id]) { currentSubjectId = id; currentFolderId = null; renderSubjectPage(id); } else if (dataCache.sections[id]) {
+                        const hasChildren = Object.values(dataCache.sections).some(s => String(s.parentFolderId) === String(id) && !s.isHidden); if(hasChildren) { renderSubjectPage(id); } else { currentFolderId = id; renderChapterPage(id); }
+                    }
+                }
+                else if (page==='chapter' && id) { currentFolderId = id; renderChapterPage(id); }
+                else if (page==='global-live') { document.querySelectorAll('.landing-page, .batch-page, .subject-page, .chapter-page, .global-live-page').forEach(p=>p.classList.remove('active')); document.getElementById(page+'-page').classList.add('active'); renderGlobalLivePage(); }
+                else { document.querySelectorAll('.landing-page, .batch-page, .subject-page, .chapter-page, .global-live-page').forEach(p=>p.classList.remove('active')); document.getElementById('landing-page').classList.add('active'); }
+            } catch (err) { document.querySelectorAll('.landing-page, .batch-page, .subject-page, .chapter-page, .global-live-page').forEach(p=>p.classList.remove('active')); document.getElementById('landing-page').classList.add('active'); }
+        }
+
+        window.addEventListener('popstate', (e) => { if (e.state && e.state.page) { showPage(e.state.page, e.state.id, false); } else { showPage('landing', null, false); } });
+        function goBack() { history.back(); }
+        window.openThemeModal = function() {
+            document.getElementById('themeModalOverlay').classList.add('show');
+            const initColor = localStorage.getItem('pwzone_color_theme') || 'theme-classic';
+            document.querySelectorAll('#themeModalOverlay .theme-option-btn').forEach(btn => {
+                const isActive = btn.getAttribute('data-theme') === initColor;
+                btn.classList.toggle('active', isActive);
+                const icon = btn.querySelector('i');
+                if (icon) icon.style.display = isActive ? 'block' : 'none';
+            });
+        };
+        window.closeThemeModal = function() {
+            document.getElementById('themeModalOverlay').classList.remove('show');
+        };
+        
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('pwzone_theme') || 'night';
+            const nextTheme = currentTheme === 'day' ? 'night' : 'day';
+            localStorage.setItem('pwzone_theme', nextTheme);
+            document.documentElement.setAttribute('data-theme', nextTheme);
+            document.body.classList.toggle('day-mode', nextTheme === 'day');
+            const i = document.getElementById('theme-icon');
+            if (i) i.className = nextTheme === 'day' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        function initTheme() {
+            const theme = localStorage.getItem('pwzone_theme') || 'night';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.body.classList.toggle('day-mode', theme === 'day');
+            const i = document.getElementById('theme-icon');
+            if (i) i.className = theme === 'day' ? 'fas fa-sun' : 'fas fa-moon';
+            const colorTheme = localStorage.getItem('pwzone_color_theme') || 'theme-classic';
+            document.documentElement.className = colorTheme;
+        }
+
+        document.querySelectorAll('#themeModalOverlay .theme-option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTheme = btn.getAttribute('data-theme');
+                document.querySelectorAll('#themeModalOverlay .theme-option-btn').forEach(b => {
+                    b.classList.remove('active');
+                    const icon = b.querySelector('i');
+                    if (icon) icon.style.display = 'none';
+                });
+                btn.classList.add('active');
+                const icon = btn.querySelector('i');
+                if (icon) icon.style.display = 'block';
+                
+                localStorage.setItem('pwzone_color_theme', targetTheme);
+                document.documentElement.className = targetTheme;
+            });
+        });
+
+        initTheme();
+
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false; if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; if(e.ctrlKey && e.shiftKey && e.keyCode == 67) return false; if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; if(e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) return false; 
+        };
+        let devtoolsDetected = false;
+        setInterval(function() {
+            if(devtoolsDetected) return; var before = new Date().getTime(); debugger; var after = new Date().getTime();
+            if (after - before > 100) { devtoolsDetected = true; document.getElementById('security-layer').style.display = 'flex'; setTimeout(() => { window.location.href = "https://www.google.com"; }, 1500); }
+        }, 500);
+    </script>
+</body>
+</html>

@@ -792,7 +792,7 @@
                     mediaHTML = `<img src="${batch.previewImage}" alt="${batch.name}" class="thumbnail-img" onerror="handleImageError(this);">`;
                 }
 
-                const targetLink = `/subjects.html?batchId=${batch._id}&batchName=${encodeURIComponent(batch.name)}`;
+                const targetLink = `/pw/subjects?batchId=${batch._id}&batchName=${encodeURIComponent(batch.name)}`;
 
                 cardDiv.innerHTML = `
                     <div class="card-header">
